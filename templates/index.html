@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+<form class="buscador" method="get" action="{{ url_for('inicio') }}">
+    <input type="search" name="q" value="{{ busqueda }}"
+           placeholder="Buscar por título, artista, etiqueta, categoría o letra...">
+    <button type="submit" class="btn">Buscar</button>
+    {% if busqueda %}
+        <a href="{{ url_for('inicio') }}" class="btn btn-gris">Limpiar</a>
+    {% endif %}
+</form>
+
+{% if total > 0 %}
+    <details class="indice">
+        <summary class="indice-titulo">📑 Índice de canciones ({{ total }})</summary>
+        <input type="search" id="filtro-indice" class="indice-filtro"
+               placeholder="Escribí para filtrar el índice por título o artista..."
+               autocomplete="off">
+        <ul class="indice-lista" id="indice-lista">
+            {% for cancion in canciones %}
+                <li data-texto="{{ (cancion['titulo'] ~ ' ' ~ (cancion['artista'] or ''))|lower }}">
+                    <a href="{{ url_for('ver_cancion', cancion_id=cancion['id']) }}">
+                        {{ cancion['titulo'] }}
+                        {% if cancion['artista'] %}
+                            <span class="indice-artista">· {{ cancion['artista'] }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+        <p class="indice-sin-resultados" id="indice-sin-resultados" hidden>
+            No hay coincidencias en el índice.
+        </p>
+    </details>
+
+    <p class="contador">{{ total }} canción(es) · {{ grupos|length }} grupo(s)</p>
+
+    {% for categoria, canciones in grupos %}
+        <details class="grupo" open>
+            <summary class="grupo-titulo">
+                <span class="grupo-nombre">{{ categoria }}</span>
+                <span class="grupo-cantidad">{{ canciones|length }}</span>
+            </summary>
+            <ul class="lista-canciones">
+                {% for cancion in canciones %}
+                    <li>
+                        <div class="fila-cancion">
+                            <button class="btn-agregar" title="Agregar a la lista del evento"
+                                    data-id="{{ cancion['id'] }}"
+                                    data-titulo="{{ cancion['titulo'] }}"
+                                    data-tono="{{ cancion['tono'] or '' }}">➕</button>
+                            <a href="{{ url_for('ver_cancion', cancion_id=cancion['id']) }}">
+                                <span class="titulo">{{ cancion['titulo'] }}</span>
+                                {% if cancion['artista'] %}
+                                    <span class="artista">{{ cancion['artista'] }}</span>
+                                {% endif %}
+                                {% if cancion['tono'] %}
+                                    <span class="tono">Tono: {{ cancion['tono'] }}</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                        {% if cancion['etiquetas'] %}
+                            <div class="etiquetas">
+                                {% for etiqueta in cancion['etiquetas'].split(',') %}
+                                    {% if etiqueta.strip() %}
+                                        <span class="etiqueta">{{ etiqueta.strip() }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </details>
+    {% endfor %}
+{% else %}
+    <div class="vacio">
+        {% if busqueda %}
+            <p>No se encontraron canciones para «{{ busqueda }}».</p>
+        {% else %}
+            <p>Todavía no hay canciones cargadas.</p>
+            <a href="{{ url_for('nueva_cancion') }}" class="btn btn-nueva">Agregar la primera</a>
+        {% endif %}
+    </div>
+{% endif %}
+
+<script>
+    // Filtro instantáneo del índice (sin recargar la página).
+    const filtro = document.getElementById('filtro-indice');
+    if (filtro) {
+        const items = document.querySelectorAll('#indice-lista li');
+        const aviso = document.getElementById('indice-sin-resultados');
+        filtro.addEventListener('input', function () {
+            const texto = filtro.value.trim().toLowerCase();
+            let visibles = 0;
+            items.forEach(function (li) {
+                const coincide = li.dataset.texto.includes(texto);
+                li.hidden = !coincide;
+                if (coincide) visibles++;
+            });
+            aviso.hidden = visibles > 0;
+        });
+    }
+</script>
+{% endblock %}

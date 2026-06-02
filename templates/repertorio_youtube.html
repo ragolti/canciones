@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block titulo %}Playlist YouTube{% endblock %}
+
+{% block contenido %}
+<h1>🎬 Playlist de YouTube</h1>
+<p class="sub">{% if titulo_lista %}{{ titulo_lista }}{% else %}Repertorio del evento{% endif %}</p>
+
+{% if playlist_url %}
+    <div class="yt-acciones">
+        <a href="{{ playlist_url }}" target="_blank" rel="noopener" class="btn btn-yt">▶ Reproducir todas</a>
+        <button class="btn btn-wsp" onclick="compartirYouTube()">📲 Enviar por WhatsApp</button>
+    </div>
+{% else %}
+    <div class="aviso">
+        Ninguna canción de la lista tiene links de YouTube cargados.
+        Cargalos desde ✏️ Editar en cada canción.
+    </div>
+{% endif %}
+
+<ol class="yt-lista">
+    {% for item in items %}
+        <li>
+            <span class="yt-titulo">{{ item.titulo }}</span>
+            {% if item.links %}
+                {% for link in item.links %}
+                    <a href="{{ link }}" target="_blank" rel="noopener" class="yt-link">▶ Video {{ loop.index }}</a>
+                {% endfor %}
+            {% else %}
+                <span class="yt-sin">sin link de YouTube</span>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ol>
+
+<a href="{{ url_for('inicio') }}" class="btn btn-gris">← Volver</a>
+
+<script>
+const YT_DATA = {{ items|tojson }};
+const YT_TITULO = {{ titulo_lista|tojson }};
+const YT_PLAYLIST = {{ playlist_url|tojson }};
+const YT_TEL = {{ telefonos|tojson }};
+
+function compartirYouTube() {
+    let msg = "🎬 *Playlist de adoración*";
+    if (YT_TITULO) msg += " — " + YT_TITULO;
+    msg += "\n\n";
+    if (YT_PLAYLIST) msg += "▶ Reproducir todas:\n" + YT_PLAYLIST + "\n\n";
+    YT_DATA.forEach(function (item, i) {
+        msg += (i + 1) + ". " + item.titulo + "\n";
+        item.links.forEach(function (l) { msg += "   " + l + "\n"; });
+    });
+
+    const texto = encodeURIComponent(msg);
+    const crudo = (YT_TEL || "").trim();
+    if (!crudo) {
+        window.open("https://wa.me/?text=" + texto, "_blank");
+        return;
+    }
+    crudo.split(",").forEach(function (n) {
+        const numero = n.replace(/\D/g, "");
+        if (numero) window.open("https://wa.me/" + numero + "?text=" + texto, "_blank");
+    });
+}
+</script>
+{% endblock %}

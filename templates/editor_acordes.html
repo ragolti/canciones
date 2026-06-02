@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block titulo %}Editar acordes · {{ cancion['titulo'] }}{% endblock %}
+
+{% block contenido %}
+<h1>🎸 Editar acordes</h1>
+<p class="sub">{{ cancion['titulo'] }}{% if cancion['artista'] %} · {{ cancion['artista'] }}{% endif %}</p>
+
+<div class="ed-ayuda">
+    <strong>Cómo usar:</strong>
+    🖱️ <b>Arrastrá</b> un acorde a izquierda/derecha para ubicarlo sobre la sílaba ·
+    ✏️ <b>Doble clic</b> en un acorde para cambiarlo o borrarlo (dejalo vacío) ·
+    ➕ usá <b>"+ acorde"</b> para agregar uno nuevo en esa línea.
+    <br>Las líneas de <em>acordes solos</em> se vuelven editables. La letra se edita en el botón ✏️ Editar normal.
+</div>
+
+<div id="editor" class="editor"></div>
+
+<form id="form-guardar" method="post">
+    <input type="hidden" name="letra" id="letra-final">
+    <div class="acciones" style="margin-top:18px;">
+        <button type="button" class="btn btn-nueva" onclick="guardarAcordes()">💾 Guardar acordes</button>
+        <a href="{{ url_for('ver_cancion', cancion_id=cancion['id']) }}" class="btn btn-gris">Cancelar</a>
+    </div>
+</form>
+
+<script>
+const LETRA_ORIGINAL = {{ cancion['letra']|tojson }};
+
+// --- Detección de líneas de acordes (inglés + español) ---
+const RE_ACORDE = /^(?:Sol|Do|Re|Mi|Fa|La|Si|[A-G])(?:#|b)?(?:m|maj|min|dim|aug|sus|add|°|º|\+|\d)*(?:\/(?:Sol|Do|Re|Mi|Fa|La|Si|[A-G])(?:#|b)?)?$/i;
+
+function esLineaDeAcordes(linea) {
+    const tokens = linea.trim().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return false;
+    return tokens.every(t => RE_ACORDE.test(t));
+}
+
+// --- Ancho de un carácter en la fuente monoespaciada ---
+let CHAR_W = 9;
+function medirAncho() {
+    const m = document.createElement("span");
+    m.className = "ed-medidor";
+    m.textContent = "0".repeat(50);
+    document.body.appendChild(m);
+    CHAR_W = m.getBoundingClientRect().width / 50;
+    m.remove();
+}
+
+// --- Construir el editor a partir de la letra ---
+function construirEditor() {
+    const cont = document.getElementById("editor");
+    cont.innerHTML = "";
+    const lineas = LETRA_ORIGINAL.split("\n");
+
+    lineas.forEach(linea => {
+        if (esLineaDeAcordes(linea)) {
+            cont.appendChild(filaAcordes(linea));
+        } else {
+            const div = document.createElement("div");
+            div.className = "ed-texto";
+            div.dataset.tipo = "texto";
+            div.textContent = linea === "" ? " " : linea;
+            div.dataset.raw = linea;
+            cont.appendChild(div);
+        }
+    });
+}
+
+function filaAcordes(linea) {
+    const fila = document.createElement("div");
+    fila.className = "ed-acordes";
+    fila.dataset.tipo = "acordes";
+
+    // Encontrar cada acorde y su columna (índice de carácter).
+    const re = /\S+/g;
+    let m;
+    while ((m = re.exec(linea)) !== null) {
+        fila.appendChild(crearChip(m[0], m.index));
+    }
+
+    // Botón para agregar un acorde nuevo a esta línea.
+    const mas = document.createElement("button");
+    mas.type = "button";
+    mas.className = "ed-mas";
+    mas.textContent = "+ acorde";
+    mas.onclick = () => fila.insertBefore(crearChip("C", 0), mas);
+    fila.appendChild(mas);
+
+    return fila;
+}
+
+function crearChip(texto, col) {
+    const chip = document.createElement("span");
+    chip.className = "ed-chip";
+    chip.textContent = texto;
+    chip.dataset.col = col;
+    chip.style.left = (col * CHAR_W) + "px";
+
+    // Editar / borrar con doble clic
+    chip.addEventListener("dblclick", e => {
+        e.stopPropagation();
+        const nuevo = prompt("Acorde (vacío para borrar):", chip.textContent);
+        if (nuevo === null) return;
+        if (nuevo.trim() === "") chip.remove();
+        else chip.textContent = nuevo.trim();
+    });
+
+    // Arrastrar para mover horizontalmente
+    chip.addEventListener("mousedown", iniciarArrastre);
+    return chip;
+}
+
+// --- Arrastre ---
+let arrastrando = null, startX = 0, startCol = 0;
+function iniciarArrastre(e) {
+    e.preventDefault();
+    arrastrando = e.currentTarget;
+    startX = e.clientX;
+    startCol = parseInt(arrastrando.dataset.col) || 0;
+    arrastrando.classList.add("arrastrando");
+    document.addEventListener("mousemove", moverArrastre);
+    document.addEventListener("mouseup", soltarArrastre);
+}
+function moverArrastre(e) {
+    if (!arrastrando) return;
+    const delta = Math.round((e.clientX - startX) / CHAR_W);
+    const col = Math.max(0, startCol + delta);
+    arrastrando.dataset.col = col;
+    arrastrando.style.left = (col * CHAR_W) + "px";
+}
+function soltarArrastre() {
+    if (arrastrando) arrastrando.classList.remove("arrastrando");
+    arrastrando = null;
+    document.removeEventListener("mousemove", moverArrastre);
+    document.removeEventListener("mouseup", soltarArrastre);
+}
+
+// --- Reconstruir la letra y guardar ---
+function reconstruirLetra() {
+    const filas = document.querySelectorAll("#editor > div");
+    const lineas = [];
+    filas.forEach(fila => {
+        if (fila.dataset.tipo === "texto") {
+            lineas.push(fila.dataset.raw);
+        } else {
+            // línea de acordes: ordenar chips por columna y armar el texto
+            const chips = Array.from(fila.querySelectorAll(".ed-chip"))
+                .map(c => ({ texto: c.textContent, col: parseInt(c.dataset.col) || 0 }))
+                .sort((a, b) => a.col - b.col);
+            let linea = "";
+            chips.forEach(ch => {
+                if (linea.length < ch.col) linea += " ".repeat(ch.col - linea.length);
+                else if (linea.length > 0) linea += " ";
+                linea += ch.texto;
+            });
+            lineas.push(linea);
+        }
+    });
+    return lineas.join("\n");
+}
+
+function guardarAcordes() {
+    document.getElementById("letra-final").value = reconstruirLetra();
+    document.getElementById("form-guardar").submit();
+}
+
+medirAncho();
+construirEditor();
+</script>
+{% endblock %}

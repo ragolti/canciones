@@ -1,0 +1,12 @@
+# Configuración para desplegar "Adoremos" en Render.
+# En Render: New > Blueprint > elegí este repositorio y se configura solo.
+services:
+  - type: web
+    name: adoremos
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true   # Render genera una clave secreta segura sola

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ cancion['titulo'] }}{% endblock %}
+
+{% block contenido %}
+<article class="detalle">
+    <div class="detalle-cabecera">
+        <h1>{{ cancion['titulo'] }}</h1>
+        <div class="acciones">
+            <a href="{{ url_for('presentar_cancion', cancion_id=cancion['id'], t=semitonos) }}" class="btn" target="_blank">🖥️ Presentar</a>
+            <a href="{{ url_for('imprimir_cancion', cancion_id=cancion['id'], t=semitonos) }}" class="btn" target="_blank">🖨️ Imprimir / PDF</a>
+            <a href="{{ url_for('editar_acordes', cancion_id=cancion['id']) }}" class="btn">🎸 Editar acordes</a>
+            <a href="{{ url_for('editar_cancion', cancion_id=cancion['id']) }}" class="btn">✏️ Editar</a>
+            <form method="post" action="{{ url_for('borrar', cancion_id=cancion['id']) }}"
+                  onsubmit="return confirm('¿Seguro que querés borrar esta canción?');"
+                  style="display:inline;">
+                <button type="submit" class="btn btn-rojo">🗑️ Borrar</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="meta">
+        {% if cancion['artista'] %}<span><strong>Artista:</strong> {{ cancion['artista'] }}</span>{% endif %}
+        {% if cancion['tono'] %}<span><strong>Tono:</strong> {{ cancion['tono'] }}</span>{% endif %}
+        {% if cancion['etiquetas'] %}<span><strong>Etiquetas:</strong> {{ cancion['etiquetas'] }}</span>{% endif %}
+    </div>
+
+    <div class="transponer">
+        <span>🎸 Transponer:</span>
+        <a href="{{ url_for('ver_cancion', cancion_id=cancion['id'], t=semitonos-1) }}" class="btn btn-chico">− ½ tono</a>
+        {% if semitonos != 0 %}
+            <span class="transponer-valor">{{ '+' if semitonos > 0 else '' }}{{ semitonos }}</span>
+            <a href="{{ url_for('ver_cancion', cancion_id=cancion['id']) }}" class="btn btn-chico btn-gris">⟳ Original</a>
+        {% else %}
+            <span class="transponer-valor">tono original</span>
+        {% endif %}
+        <a href="{{ url_for('ver_cancion', cancion_id=cancion['id'], t=semitonos+1) }}" class="btn btn-chico">+ ½ tono</a>
+    </div>
+
+    {% set links_youtube = (cancion['youtube'] or '').splitlines() | map('trim') | select | list if cancion['youtube'] is defined else [] %}
+    {% if links_youtube %}
+        <div class="youtube-links">
+            <strong>🎬 Escuchar en YouTube:</strong>
+            {% for link in links_youtube %}
+                <a href="{{ link }}" target="_blank" rel="noopener" class="btn btn-yt">▶ Video {{ loop.index }}</a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <pre class="letra">{{ cancion['letra'] }}</pre>
+
+    <a href="{{ url_for('inicio') }}" class="btn btn-gris">← Volver a la lista</a>
+</article>
+{% endblock %}

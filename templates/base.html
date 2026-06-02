@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titulo %}Adoremos{% endblock %}</title>
+    <!-- Aplica el tema guardado ANTES de pintar, para que no parpadee -->
+    <script>
+        (function () {
+            var t = localStorage.getItem("adoremos_tema") || "noche";
+            document.documentElement.setAttribute("data-theme", t);
+        })();
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <a href="{{ url_for('inicio') }}" class="logo">🎵 Adoremos</a>
+        <div class="header-acciones">
+            <select class="tema-selector" id="tema-selector" onchange="cambiarTema(this.value)" title="Cambiar tema">
+                <option value="noche">🌙 Noche</option>
+                <option value="amanecer">🌅 Amanecer</option>
+                <option value="violeta">🎨 Violeta</option>
+            </select>
+            <a href="{{ url_for('nueva_cancion') }}" class="btn btn-nueva">+ Nueva canción</a>
+        </div>
+    </header>
+    <script>
+        // Marca el tema actual en el selector y permite cambiarlo.
+        function cambiarTema(t) {
+            localStorage.setItem("adoremos_tema", t);
+            document.documentElement.setAttribute("data-theme", t);
+        }
+        (function () {
+            var t = localStorage.getItem("adoremos_tema") || "noche";
+            var sel = document.getElementById("tema-selector");
+            if (sel) sel.value = t;
+        })();
+    </script>
+
+    <main>
+        {% with mensajes = get_flashed_messages() %}
+            {% if mensajes %}
+                {% for mensaje in mensajes %}
+                    <div class="aviso">{{ mensaje }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block contenido %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>Adoremos · cancionero de alabanza</p>
+    </footer>
+
+    <!-- Botón flotante para abrir/cerrar la lista del evento -->
+    <button id="rep-toggle" class="rep-toggle" onclick="repToggle()">
+        🎵 Lista <span id="rep-contador" class="rep-badge">0</span>
+    </button>
+
+    <!-- Panel lateral con la lista del evento -->
+    <aside id="rep-panel" class="rep-panel">
+        <div class="rep-cabecera">
+            <strong>🎵 Lista del evento</strong>
+            <button class="rep-cerrar" onclick="repToggle()" title="Cerrar">✕</button>
+        </div>
+        <ul id="rep-items" class="rep-lista"></ul>
+        <div class="rep-opciones">
+            <label>Estilo
+                <select id="rep-estilo">
+                    <option value="clasico">Clásico</option>
+                    <option value="dark">Dark</option>
+                    <option value="antiguo">Antiguo</option>
+                </select>
+            </label>
+            <label>Hoja
+                <select id="rep-orientacion">
+                    <option value="horizontal">Carta Horizontal</option>
+                    <option value="vertical">Carta Vertical</option>
+                </select>
+            </label>
+            <button class="btn btn-nueva" onclick="repImprimir()">📄 PDF / Imprimir</button>
+        </div>
+
+        <div class="rep-envio">
+            <label>📅 Fecha del evento
+                <input type="date" id="rep-fecha">
+            </label>
+            <label>📱 WhatsApp (uno o varios, separados por coma)
+                <input type="text" id="rep-telefonos" placeholder="Ej: 5493512345678, 5492611234567">
+            </label>
+            <button class="btn btn-wsp" onclick="repWhatsApp()">📲 Enviar lista por WhatsApp</button>
+            <button class="btn btn-yt" onclick="repYouTube()">🎬 Playlist de YouTube</button>
+            <button class="btn btn-proy" onclick="repProyectar()">🖥️ Proyectar lista</button>
+            <p class="rep-nota">El mensaje lleva la fecha y el listado de canciones. El PDF se guarda con el nombre de la fecha (generalo con 📄 y elegí "Guardar como PDF").</p>
+        </div>
+
+        <div class="rep-pie">
+            <button class="btn btn-rojo btn-chico" onclick="repVaciar()">Vaciar lista</button>
+        </div>
+    </aside>
+
+    <script src="{{ url_for('static', filename='repertorio.js') }}"></script>
+</body>
+</html>

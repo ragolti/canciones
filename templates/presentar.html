@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ cancion['titulo'] }}</title>
+    <style>
+        html, body { margin: 0; height: 100%; }
+        body {
+            background: #111;
+            color: #f5f5f5;
+            font-family: "Consolas", "Courier New", monospace;
+            padding: 40px 6vw;
+        }
+        h1 {
+            color: #b9a6ff;
+            font-size: 2.2rem;
+            text-align: center;
+            margin-top: 0;
+        }
+        .meta { text-align: center; color: #999; margin-bottom: 30px; }
+        .letra {
+            font-size: var(--tam, 2rem);
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .controles {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+        }
+        .controles button, .controles a {
+            background: #2a2a2a;
+            color: #f5f5f5;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .controles button:hover, .controles a:hover { background: #3a3a3a; }
+    </style>
+</head>
+<body>
+    <div class="controles">
+        <button onclick="cambiarTam(-0.2)">A−</button>
+        <button onclick="cambiarTam(0.2)">A+</button>
+        <a href="{{ url_for('ver_cancion', cancion_id=cancion['id']) }}">✕ Salir</a>
+    </div>
+
+    <h1>{{ cancion['titulo'] }}</h1>
+    <div class="meta">
+        {% if cancion['artista'] %}{{ cancion['artista'] }} · {% endif %}
+        {% if cancion['tono'] %}Tono: {{ cancion['tono'] }}{% endif %}
+    </div>
+
+    <div class="letra" id="letra">{{ cancion['letra'] }}</div>
+
+    <script>
+        // Permite agrandar o achicar la letra con los botones A+ / A−.
+        let tam = 2;
+        function cambiarTam(delta) {
+            tam = Math.max(1, tam + delta);
+            document.getElementById('letra').style.setProperty('--tam', tam + 'rem');
+            document.getElementById('letra').style.fontSize = tam + 'rem';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Proyectar · Adoremos</title>
+    <script>
+        (function () {
+            var t = localStorage.getItem("adoremos_tema") || "noche";
+            document.documentElement.setAttribute("data-theme", t);
+        })();
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="proy-body">
+    <header class="proy-header">
+        <span class="logo">🖥️ Proyectar — Adoremos</span>
+        <div class="header-acciones">
+            <button class="btn btn-nueva" onclick="abrirProyeccion()">📺 Abrir pantalla de proyección</button>
+            <button class="btn" onclick="proyectarVacio()">⬛ Pantalla en negro</button>
+            <a href="{{ url_for('inicio') }}" class="btn">← Volver</a>
+        </div>
+    </header>
+
+    <div class="proy-grid">
+        <!-- Izquierda: lista de canciones -->
+        <aside class="proy-canciones">
+            <h3>Canciones</h3>
+            <ul id="proy-lista"></ul>
+        </aside>
+
+        <!-- Centro: párrafos de la canción elegida -->
+        <section class="proy-parrafos">
+            <h3 id="proy-titulo-actual">Elegí una canción</h3>
+            <div id="proy-parrafos"></div>
+        </section>
+
+        <!-- Derecha: vista previa + fondos -->
+        <aside class="proy-preview">
+            <h3>Vista previa (pantalla gigante)</h3>
+            <div class="proy-preview-pantalla" id="proy-preview"></div>
+
+            <h3 style="margin-top:16px;">Fondo</h3>
+            <div class="proy-fondos">
+                <button onclick="setFondo({tipo:'color',valor:'#000'})">⬛ Negro</button>
+                <button onclick="setFondo({tipo:'color',valor:'linear-gradient(135deg,#2a1f4d,#47338f)'})">🌌 Violeta</button>
+                <button onclick="setFondo({tipo:'color',valor:'linear-gradient(135deg,#0d2a4d,#1f6b7a)'})">🌊 Azul</button>
+                <button onclick="setFondo({tipo:'animado'})">✨ Animado</button>
+            </div>
+            <input type="text" id="fondo-url" class="proy-fondo-url" placeholder="Pegá URL de imagen (.jpg/.png) o video (.mp4)">
+            <div class="proy-fondos">
+                <button onclick="fondoDesdeUrl('imagen')">🖼️ Usar imagen</button>
+                <button onclick="fondoDesdeUrl('video')">🎬 Usar video</button>
+            </div>
+            <p class="rep-nota">¿Buscás fondos gratis?
+                <a href="https://www.pexels.com/es-es/buscar/videos/worship/" target="_blank" rel="noopener">Pexels</a> ·
+                <a href="https://unsplash.com/es/s/fotos/worship" target="_blank" rel="noopener">Unsplash</a>
+                — copiá el link de la imagen/video y pegalo arriba.</p>
+        </aside>
+    </div>
+
+<script>
+const CANCIONES = {{ canciones|tojson }};
+const RE_ACORDE = /^(?:Sol|Do|Re|Mi|Fa|La|Si|[A-G])(?:#|b)?(?:m|maj|min|dim|aug|sus|add|°|º|\+|\d)*(?:\/(?:Sol|Do|Re|Mi|Fa|La|Si|[A-G])(?:#|b)?)?$/i;
+const canal = new BroadcastChannel("adoremos_proyeccion");
+let ventanaProyeccion = null;
+
+function esLineaDeAcordes(linea) {
+    const t = linea.trim().split(/\s+/).filter(Boolean);
+    return t.length > 0 && t.every(x => RE_ACORDE.test(x));
+}
+
+// Quita las líneas de acordes y divide la letra en párrafos (separados por línea en blanco).
+function parrafosDe(letra) {
+    const limpias = letra.split("\n").filter(l => !esLineaDeAcordes(l));
+    const texto = limpias.join("\n");
+    return texto.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+}
+
+function abrirProyeccion() {
+    ventanaProyeccion = window.open("/proyeccion", "adoremos_proyeccion");
+}
+
+let textoActual = "";
+let fondoActual = { tipo: "color", valor: "#000" };
+
+function emitir(texto, titulo) {
+    textoActual = texto;
+    canal.postMessage({ texto: texto, titulo: titulo || "" });
+    document.getElementById("proy-preview").textContent = texto;
+}
+
+function proyectarVacio() {
+    emitir("", "");
+}
+
+function setFondo(f) {
+    fondoActual = f;
+    canal.postMessage({ fondo: f });
+    // Reflejar el fondo también en la vista previa
+    const prev = document.getElementById("proy-preview");
+    prev.style.backgroundImage = "";
+    if (f.tipo === "color") prev.style.background = f.valor;
+    else if (f.tipo === "animado") prev.style.background = "linear-gradient(-45deg,#1a0d3d,#3a1f7a,#0d2a4d,#1f6b7a)";
+    else if (f.tipo === "imagen") { prev.style.background = "#000"; prev.style.backgroundImage = "url('" + f.valor + "')"; prev.style.backgroundSize = "cover"; prev.style.backgroundPosition = "center"; }
+    else if (f.tipo === "video") prev.style.background = "#000";
+}
+
+function fondoDesdeUrl(tipo) {
+    const url = (document.getElementById("fondo-url").value || "").trim();
+    if (!url) { alert("Pegá primero la URL de la imagen o el video."); return; }
+    setFondo({ tipo: tipo, valor: url });
+}
+
+// Cuando la ventana de proyección se abre, pide el estado: le reenviamos texto + fondo.
+canal.onmessage = function (e) {
+    if (e.data && e.data.hola) {
+        canal.postMessage({ fondo: fondoActual });
+        canal.postMessage({ texto: textoActual, titulo: "" });
+    }
+};
+
+let cancionActual = -1;
+function elegirCancion(i) {
+    cancionActual = i;
+    document.querySelectorAll("#proy-lista li").forEach((li, idx) =>
+        li.classList.toggle("activa", idx === i));
+    const c = CANCIONES[i];
+    document.getElementById("proy-titulo-actual").textContent = c.titulo;
+    const cont = document.getElementById("proy-parrafos");
+    cont.innerHTML = "";
+    parrafosDe(c.letra).forEach(p => {
+        const div = document.createElement("div");
+        div.className = "proy-parrafo";
+        div.textContent = p;
+        div.onclick = function () {
+            document.querySelectorAll(".proy-parrafo").forEach(x => x.classList.remove("emitiendo"));
+            div.classList.add("emitiendo");
+            emitir(p, c.titulo);
+        };
+        cont.appendChild(div);
+    });
+}
+
+// Construir la lista de canciones
+const ul = document.getElementById("proy-lista");
+if (CANCIONES.length === 0) {
+    document.getElementById("proy-titulo-actual").textContent = "La lista está vacía";
+} else {
+    CANCIONES.forEach((c, i) => {
+        const li = document.createElement("li");
+        li.textContent = (i + 1) + ". " + c.titulo;
+        li.onclick = () => elegirCancion(i);
+        ul.appendChild(li);
+    });
+    elegirCancion(0);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>{{ titulo_lista or "Repertorio" }}</title>
+    <style>
+        /* Tamaño y orientación de la hoja (configurable desde la lista) */
+        @page {
+            size: {{ "Letter" if tamano == "letter" else "A4" }} {{ "landscape" if orientacion == "horizontal" else "portrait" }};
+            margin: 1.2cm;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+        body {
+            font-size: 12pt;
+            line-height: 1.5;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .barra {
+            text-align: center;
+            padding: 14px;
+            background: #f0f0f0;
+        }
+        .barra button {
+            font-size: 1rem;
+            padding: 10px 22px;
+            cursor: pointer;
+            border: 1px solid #888;
+            border-radius: 8px;
+            background: white;
+        }
+        .barra .ayuda { font-size: 0.8rem; color: #555; margin-top: 8px; }
+
+        .cancion {
+            padding: 18px 22px;
+            page-break-after: always;
+            break-after: page;
+        }
+        .cancion:last-child { page-break-after: auto; break-after: auto; }
+
+        .cabecera { border-bottom: 2px solid currentColor; margin-bottom: 12px; padding-bottom: 6px; }
+        .numero { font-size: 0.9rem; opacity: 0.6; }
+        h1 { font-size: 1.6rem; margin: 2px 0; }
+        .meta { font-size: 0.95rem; opacity: 0.8; }
+        .meta span { margin-right: 18px; }
+
+        .letra {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 1rem;
+            columns: 2;
+            column-gap: 28px;
+        }
+        @media print { .barra { display: none; } }
+
+        /* ===== Estilo CLÁSICO (blanco) ===== */
+        .estilo-clasico { background: #fff; color: #111; font-family: Georgia, serif; }
+
+        /* ===== Estilo DARK (fondo oscuro) ===== */
+        .estilo-dark { background: #15151c; color: #f2f2f2; font-family: "Segoe UI", Arial, sans-serif; }
+        .estilo-dark h1 { color: #b9a6ff; }
+
+        /* ===== Estilo ANTIGUO (sepia) ===== */
+        .estilo-antiguo { background: #f4ecd8; color: #4b3a26; font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif; }
+        .estilo-antiguo h1 { color: #6b4e2e; }
+    </style>
+</head>
+<body class="estilo-{{ estilo }}">
+    <div class="barra">
+        <button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+        <div class="ayuda">
+            Tip: en el diálogo de impresión activá <b>"Gráficos en segundo plano"</b>
+            para que se vean los fondos de color (estilo Dark / Antiguo).
+        </div>
+    </div>
+
+    {% if canciones %}
+        {% for cancion in canciones %}
+            <section class="cancion">
+                <div class="cabecera">
+                    <div class="numero">{{ loop.index }} de {{ canciones|length }}{% if titulo_lista %} · {{ titulo_lista }}{% endif %}</div>
+                    <h1>{{ cancion['titulo'] }}</h1>
+                    <div class="meta">
+                        {% if cancion['tono'] %}<span><b>Tono:</b> {{ cancion['tono'] }}</span>{% endif %}
+                        {% if cancion['artista'] %}<span>{{ cancion['artista'] }}</span>{% endif %}
+                    </div>
+                </div>
+                <div class="letra">{{ cancion['letra'] }}</div>
+            </section>
+        {% endfor %}
+    {% else %}
+        <div class="cancion">
+            <h1>La lista está vacía</h1>
+            <p>Volvé al cancionero y agregá canciones con el botón ➕.</p>
+        </div>
+    {% endif %}
+</body>
+</html>

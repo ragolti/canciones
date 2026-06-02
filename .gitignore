@@ -1,0 +1,4 @@
+# Entorno virtual local (no se sube al servidor)
+.venv/
+__pycache__/
+*.pyc

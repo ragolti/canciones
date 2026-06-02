@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block titulo %}{% if accion == 'editar' %}Editar canción{% else %}Nueva canción{% endif %}{% endblock %}
+
+{% block contenido %}
+<h1>{% if accion == 'editar' %}Editar canción{% else %}Nueva canción{% endif %}</h1>
+
+<form method="post" class="formulario">
+    <label>
+        Título *
+        <input type="text" name="titulo" required
+               value="{{ cancion['titulo'] if cancion['titulo'] is defined else '' }}">
+    </label>
+
+    <div class="fila">
+        <label>
+            Artista / autor
+            <input type="text" name="artista"
+                   value="{{ cancion['artista'] if cancion['artista'] is defined else '' }}">
+        </label>
+        <label>
+            Tono / acordes principales
+            <input type="text" name="tono" placeholder="Ej: Sol mayor (G)"
+                   value="{{ cancion['tono'] if cancion['tono'] is defined else '' }}">
+        </label>
+    </div>
+
+    <div class="fila">
+        <label>
+            Categoría / grupo
+            <input type="text" name="categoria" list="lista-categorias"
+                   placeholder="Ej: Contemporáneas"
+                   value="{{ cancion['categoria'] if cancion['categoria'] is defined else '' }}">
+            <datalist id="lista-categorias">
+                {% for cat in categorias %}
+                    <option value="{{ cat }}"></option>
+                {% endfor %}
+            </datalist>
+        </label>
+        <label>
+            Etiquetas (separadas por comas)
+            <input type="text" name="etiquetas" placeholder="Ej: misa, lenta, español"
+                   value="{{ cancion['etiquetas'] if cancion['etiquetas'] is defined else '' }}">
+        </label>
+    </div>
+
+    <label>
+        Links de YouTube (uno por línea)
+        <textarea name="youtube" rows="3" placeholder="https://www.youtube.com/watch?v=...&#10;https://youtu.be/...">{{ cancion['youtube'] if cancion['youtube'] is defined else '' }}</textarea>
+    </label>
+
+    <label>
+        Letra (podés escribir acordes arriba de cada línea)
+        <textarea name="letra" rows="18" placeholder="Escribí aquí la letra...">{{ cancion['letra'] if cancion['letra'] is defined else '' }}</textarea>
+    </label>
+
+    <div class="acciones">
+        <button type="submit" class="btn btn-nueva">💾 Guardar</button>
+        <a href="{{ url_for('inicio') }}" class="btn btn-gris">Cancelar</a>
+    </div>
+</form>
+{% endblock %}

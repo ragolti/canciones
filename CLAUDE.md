@@ -1,0 +1,48 @@
+# Proyecto: Administrador de Canciones 🎵
+
+App web local (en español) para administrar canciones con su letra, tono y acordes.
+
+## Stack
+- **Python** + **Flask** (servidor web)
+- **SQLite** como base de datos (archivo `canciones.db`, se crea solo)
+- Plantillas **Jinja2** en `templates/` y estilos en `static/style.css`
+- Sin frameworks de frontend: HTML + CSS plano
+
+## Arquitectura / archivos
+- `app.py` — rutas Flask y lógica de las páginas. Punto de entrada (`py app.py`).
+- `database.py` — todas las operaciones SQLite (crear/listar/leer/editar/borrar).
+- `acordes.py` — transposición de acordes (sube/baja semitonos). Solo modifica
+  "líneas de acordes" (líneas compuestas únicamente por acordes); entiende
+  notación inglesa (C, D, E…) y española (Do, Re, Mi…).
+- `templates/`
+  - `base.html` — layout común (header, footer, avisos flash).
+  - `index.html` — lista + buscador.
+  - `cancion.html` — detalle, con transponer / presentar / imprimir.
+  - `form.html` — alta y edición (compartido).
+  - `imprimir.html` — vista para imprimir o guardar como PDF (Ctrl+P).
+  - `presentar.html` — modo presentación (letra grande, fondo oscuro, A+/A−).
+- `arrancar.bat` — crea el venv la primera vez, instala deps y lanza la app.
+
+## Modelo de datos (tabla `canciones`)
+`id, titulo (obligatorio), artista, tono, etiquetas (texto separado por comas),
+letra, creada_en, modificada_en`
+
+## Cómo arrancar
+- Fácil: doble clic en `arrancar.bat` → http://127.0.0.1:5000
+- Manual: `py app.py` (con el venv `.venv` activado)
+
+## Funciones implementadas
+- CRUD de canciones + buscador (título / artista / etiqueta)
+- Transposición de acordes en vivo (parámetro `?t=` en semitonos, rango -11..+11)
+- Impresión / exportar a PDF (vía diálogo de impresión del navegador)
+- Modo presentación con tamaño de letra ajustable
+
+## Convenciones
+- **Todo el código y la UI en español** (nombres de variables, comentarios, textos).
+- Comentarios pensados para alguien que recién empieza a programar.
+- Mantener cero dependencias pesadas: preferir lo que ya trae Python / el navegador.
+
+## Ideas pendientes (futuro)
+- Listas / repertorios ordenados de canciones.
+- Exportar varias canciones juntas a un solo PDF (cancionero).
+- Importar/exportar canciones a archivos de texto.
