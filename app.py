@@ -26,6 +26,15 @@ app.secret_key = os.environ.get("SECRET_KEY", "cambia-esto-por-cualquier-texto-s
 # Crea la tabla la primera vez que se ejecuta.
 database.inicializar()
 
+# Si la base está vacía (por ejemplo, la primera vez en Neon/Postgres online),
+# carga automáticamente las 149 canciones de la "Lista Nueva".
+if database.contar_canciones() == 0:
+    try:
+        import importar_lista_nueva
+        importar_lista_nueva.main()
+    except Exception as e:
+        print("No se pudieron cargar las canciones iniciales:", e)
+
 
 @app.route("/")
 def inicio():

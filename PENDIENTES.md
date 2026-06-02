@@ -196,14 +196,15 @@ Pendiente opcional a futuro: sumar foto de cabecera (hero) de banco gratis.
 ---
 
 ## 11. Publicar el programa como página web pública
-**Estado:** en progreso
+**Estado:** ✅ COMPLETADO (online) — falta conectar el dominio propio
 
-- El programa YA es una web (Flask), corre en el navegador.
-- Falta que esté **online / pública en internet** con dominio propio.
-- **Dominio elegido: `canciones.com.ar`** (libre en nic.ar). El nombre de la app es "Adoremos".
-- Pendiente: registrar el dominio en nic.ar (la web de nic.ar está dando error por momentos),
-  luego desplegar en **Render** y apuntar el dominio (DNS).
-- App ya preparada para Render (Procfile, gunicorn, ajustes de producción).
+- ✅ App publicada en **Render** (plan free): **https://adoremos.onrender.com**
+- ✅ Código en GitHub: **github.com/ragolti/canciones** (repo público, auto-deploy activo).
+- ✅ Las 149 canciones viajan en la base `canciones.db` incluida en el repo.
+- ⏳ PENDIENTE: apuntar el dominio **www.canciones.com.ar** (en trámite en nic.ar) al servicio
+  de Render (agregar custom domain en Render + configurar DNS en nic.ar).
+- NOTA: plan free de Render "duerme" tras inactividad (1ª visita tarda ~50s). Disco efímero:
+  edición/usuarios/historial (items 12, 15) requieren base persistente (Render pago o externa).
 
 ---
 

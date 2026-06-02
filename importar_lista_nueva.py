@@ -3720,7 +3720,8 @@ def main():
         if titulo.strip().lower() in existentes:
             saltadas += 1
             continue
-        database.crear_cancion(titulo, artista, tono, "Lista Nueva", letra.strip())
+        database.crear_cancion(titulo, artista, tono, "Lista Nueva", letra.strip(),
+                                "Nuevas y últimas")
         existentes.add(titulo.strip().lower())
         agregadas += 1
     print(f"Canciones agregadas: {agregadas}")
