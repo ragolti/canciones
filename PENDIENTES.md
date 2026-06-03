@@ -279,7 +279,14 @@ La ventana de proyección, al abrirse, pide el estado actual (texto + fondo) por
 ---
 
 ## 15. Historial de listas de eventos + favoritas
-**Estado:** pendiente
+**Estado:** ✅ COMPLETADO
+
+Implementado: botón "💾 Guardar en historial" en el panel del repertorio (requiere login).
+Guarda la lista con su nombre/fecha, el usuario que la creó y las canciones. Página /historial:
+izquierda = listas guardadas (con autor y cantidad), derecha = detalle de la lista elegida
+(canciones con su tono). Filtro por usuario y casilla "⭐ Solo favoritas". Cada lista se puede
+marcar/desmarcar como favorita, "📋 Usar esta lista" (la carga en el repertorio) y borrar
+(quien la creó o el admin).
 
 - Las listas de evento suelen ser de **7 u 8 canciones**.
 - Guardar un **"Historial"** de todas las listas que se van armando.
@@ -295,6 +302,35 @@ La ventana de proyección, al abrirse, pide el estado actual (texto + fondo) por
 - Necesita base de datos persistente y, para "nombre del usuario", se apoya en el sistema de
   usuarios (item 12).
 - Guardar la lista actual del repertorio al "cerrar lista" (item 7) la suma al historial.
+
+---
+
+## 16. Clasificación de canciones en varias dimensiones (botones por tema)
+**Estado:** pendiente (a definir alcance)
+
+Pedido del usuario: al lado de cada canción, botones para clasificar:
+- **Función:** "Alabanza" vs "Adoración" (un recuadro).
+- **Estilo/época:** "Coros", "Clásicas", "Contemporáneas", "Nuevas" (otro recuadro a la derecha).
+
+Investigación (foros/sitios de adoración) — dimensiones que se usan:
+1. FUNCIÓN/MOMENTO: Alabanza (festiva, rápida) vs Adoración (íntima, lenta).
+   A veces más fino: Júbilo/Entrada → Alabanza → Adoración → Íntimo/Comunión.
+2. ESTILO/ÉPOCA: Coros clásicos, Clásicas, Contemporáneas, Nuevas.
+3. TEMPO: Rápida / Media / Lenta (clave para ordenar el setlist).
+4. TEMÁTICA: Cruz/Sangre, Espíritu Santo, Guerra espiritual, Gratitud, Avivamiento,
+   Comunión, Navidad, Libertad, Victoria, etc.
+
+Propuesta técnica:
+- Campo nuevo `funcion` (Alabanza/Adoración) además del `categoria` actual (estilo).
+- Opcional: `tempo` y reutilizar `etiquetas` para temática.
+- Botones rápidos de clasificación en la lista (sin entrar a editar), guardando vía AJAX.
+- Filtros por cada dimensión arriba del listado.
+
+Fuentes consultadas:
+- worshipleader.me/blog/categoriesofsongs (4 categorías de canciones)
+- davidsantistevan.com (cómo armar un setlist que fluye)
+- praisecharts.com/explore/themes (temáticas)
+- compellingtruth.org / lacorriente.com (alabanza vs adoración)
 
 ---
 

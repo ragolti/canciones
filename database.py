@@ -28,13 +28,15 @@ if USAR_POSTGRES:
 # La base SQLite se guarda en la misma carpeta que este archivo (uso local).
 RUTA_DB = Path(__file__).parent / "canciones.db"
 
-# Categorías sugeridas para agrupar las canciones (se pueden agregar otras nuevas).
-CATEGORIAS_SUGERIDAS = [
-    "Coros clásicos",
-    "Clásicas Pop",
-    "Contemporáneas",
-    "Nuevas y últimas",
-]
+# ----- Clasificación de canciones (varias dimensiones) -----
+# Estilo / época (es el campo 'categoria', se usa para agrupar en la lista).
+CATEGORIAS_SUGERIDAS = ["Coros", "Clásicas", "Contemporáneas", "Nuevas"]
+# Función / momento.
+FUNCIONES = ["Alabanza", "Adoración"]
+# Tempo.
+TEMPOS = ["Rápida", "Media", "Lenta"]
+# Campos que se pueden cambiar con los botones rápidos (lista blanca de seguridad).
+CAMPOS_CLASIFICACION = {"categoria", "funcion", "tempo"}
 
 # Nombre que se usa cuando una canción todavía no tiene categoría asignada.
 SIN_CATEGORIA = "Sin categoría"
@@ -126,19 +128,24 @@ def inicializar():
         _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS categoria TEXT DEFAULT ''")
         _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS youtube TEXT DEFAULT ''")
         _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS estado TEXT DEFAULT 'aprobada'")
+        _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS funcion TEXT DEFAULT ''")
+        _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS tempo TEXT DEFAULT ''")
     else:
         con = conectar()
         try:
             columnas = [f["name"] for f in con.execute("PRAGMA table_info(canciones)")]
-            if "categoria" not in columnas:
-                con.execute("ALTER TABLE canciones ADD COLUMN categoria TEXT DEFAULT ''")
-            if "youtube" not in columnas:
-                con.execute("ALTER TABLE canciones ADD COLUMN youtube TEXT DEFAULT ''")
-            if "estado" not in columnas:
-                con.execute("ALTER TABLE canciones ADD COLUMN estado TEXT DEFAULT 'aprobada'")
+            for col, defecto in [("categoria", "''"), ("youtube", "''"),
+                                 ("estado", "'aprobada'"), ("funcion", "''"), ("tempo", "''")]:
+                if col not in columnas:
+                    con.execute(f"ALTER TABLE canciones ADD COLUMN {col} TEXT DEFAULT {defecto}")
             con.commit()
         finally:
             con.close()
+
+    # Unifica nombres de estilo viejos a los nuevos (idempotente).
+    _ejecutar("UPDATE canciones SET categoria='Nuevas' WHERE categoria='Nuevas y últimas'")
+    _ejecutar("UPDATE canciones SET categoria='Coros' WHERE categoria='Coros clásicos'")
+    _ejecutar("UPDATE canciones SET categoria='Clásicas' WHERE categoria='Clásicas Pop'")
 
     # Tabla de usuarios (registro / login / roles).
     if USAR_POSTGRES:
@@ -286,6 +293,17 @@ def contar_pendientes():
 def cambiar_estado(cancion_id, estado):
     """Cambia el estado de una canción (aprobada / pendiente)."""
     _ejecutar("UPDATE canciones SET estado = ? WHERE id = ?", (estado, cancion_id))
+
+
+def clasificar(cancion_id, campo, valor):
+    """Cambia una clasificación (categoria / funcion / tempo) con los botones rápidos.
+
+    'campo' se valida contra una lista blanca para que sea seguro.
+    """
+    if campo not in CAMPOS_CLASIFICACION:
+        return False
+    _ejecutar(f"UPDATE canciones SET {campo} = ? WHERE id = ?", (valor, cancion_id))
+    return True
 
 
 # ---------- Usuarios ----------

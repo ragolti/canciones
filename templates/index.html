@@ -68,6 +68,29 @@
                                 {% endfor %}
                             </div>
                         {% endif %}
+
+                        {% if usuario_actual %}
+                        <div class="clasif" data-id="{{ cancion['id'] }}">
+                            <div class="clasif-grupo">
+                                <span class="clasif-label">Función</span>
+                                {% for f in funciones %}
+                                    <button type="button" class="clasif-btn{% if cancion['funcion'] == f %} activo{% endif %}" data-campo="funcion" data-valor="{{ f }}">{{ f }}</button>
+                                {% endfor %}
+                            </div>
+                            <div class="clasif-grupo">
+                                <span class="clasif-label">Estilo</span>
+                                {% for e in estilos %}
+                                    <button type="button" class="clasif-btn{% if cancion['categoria'] == e %} activo{% endif %}" data-campo="categoria" data-valor="{{ e }}">{{ e }}</button>
+                                {% endfor %}
+                            </div>
+                            <div class="clasif-grupo">
+                                <span class="clasif-label">Tempo</span>
+                                {% for t in tempos %}
+                                    <button type="button" class="clasif-btn{% if cancion['tempo'] == t %} activo{% endif %}" data-campo="tempo" data-valor="{{ t }}">{{ t }}</button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
                     </li>
                 {% endfor %}
             </ul>
@@ -101,5 +124,29 @@
             aviso.hidden = visibles > 0;
         });
     }
+
+    // Botones rápidos de clasificación (función / estilo / tempo).
+    document.addEventListener("click", function (e) {
+        const b = e.target.closest(".clasif-btn");
+        if (!b) return;
+        const cont = b.closest(".clasif");
+        const id = cont.dataset.id;
+        const yaActivo = b.classList.contains("activo");
+        const valor = yaActivo ? "" : b.dataset.valor;  // volver a tocar = quitar
+        fetch("/clasificar/" + id, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ campo: b.dataset.campo, valor: valor }),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d.ok) {
+                b.parentElement.querySelectorAll(".clasif-btn").forEach(function (x) {
+                    x.classList.remove("activo");
+                });
+                if (!yaActivo) b.classList.add("activo");
+            }
+        });
+    });
 </script>
 {% endblock %}

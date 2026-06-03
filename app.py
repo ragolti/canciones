@@ -84,7 +84,7 @@ try:
     _esperadas = len(importar_lista_nueva.CANCIONES)
     if database.contar_canciones() < _esperadas:
         _filas = [
-            (titulo, artista, tono, "Lista Nueva", letra.strip(), "Nuevas y últimas", "")
+            (titulo, artista, tono, "Lista Nueva", letra.strip(), "Nuevas", "")
             for (titulo, artista, tono, letra) in importar_lista_nueva.CANCIONES
         ]
         database.crear_varias(_filas)
@@ -105,6 +105,9 @@ def inicio():
         canciones=canciones,   # lista plana alfabética para el índice
         total=len(canciones),
         busqueda=busqueda,
+        funciones=database.FUNCIONES,
+        estilos=database.CATEGORIAS_SUGERIDAS,
+        tempos=database.TEMPOS,
     )
 
 
@@ -242,6 +245,19 @@ def rechazar(cancion_id):
     database.borrar_cancion(cancion_id)
     flash("Canción rechazada y eliminada.")
     return redirect(url_for("revisar"))
+
+
+@app.route("/clasificar/<int:cancion_id>", methods=["POST"])
+@login_required
+def clasificar(cancion_id):
+    """Botones rápidos de clasificación (función / estilo / tempo) desde la lista."""
+    datos = request.get_json(silent=True) or {}
+    campo = datos.get("campo") or request.form.get("campo", "")
+    valor = datos.get("valor")
+    if valor is None:
+        valor = request.form.get("valor", "")
+    ok = database.clasificar(cancion_id, campo, valor)
+    return {"ok": bool(ok)}
 
 
 @app.route("/listas/guardar", methods=["POST"])
