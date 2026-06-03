@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titulo %}Revisar · Adoremos{% endblock %}
+{% block contenido %}
+<h1>📋 Revisar canciones pendientes</h1>
+<p class="sub">Canciones que enviaron los colaboradores y esperan tu aprobación.</p>
+
+{% if pendientes %}
+    <ul class="lista-canciones">
+        {% for c in pendientes %}
+            <li>
+                <div class="fila-cancion">
+                    <a href="{{ url_for('ver_cancion', cancion_id=c['id']) }}" target="_blank">
+                        <span class="titulo">{{ c['titulo'] }}</span>
+                        {% if c['artista'] %}<span class="artista">{{ c['artista'] }}</span>{% endif %}
+                        {% if c['tono'] %}<span class="tono">Tono: {{ c['tono'] }}</span>{% endif %}
+                    </a>
+                </div>
+                <div class="acciones" style="margin-top:8px;">
+                    <a href="{{ url_for('ver_cancion', cancion_id=c['id']) }}" target="_blank" class="btn btn-chico btn-gris">👁️ Ver</a>
+                    <form method="post" action="{{ url_for('aprobar', cancion_id=c['id']) }}" style="display:inline;">
+                        <button class="btn btn-chico btn-nueva">✅ Aprobar</button>
+                    </form>
+                    <form method="post" action="{{ url_for('rechazar', cancion_id=c['id']) }}" style="display:inline;"
+                          onsubmit="return confirm('¿Rechazar y eliminar esta canción?');">
+                        <button class="btn btn-chico btn-rojo">🗑️ Rechazar</button>
+                    </form>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <div class="vacio">
+        <p>No hay canciones pendientes. ¡Todo al día! 🎉</p>
+        <a href="{{ url_for('inicio') }}" class="btn btn-gris">← Volver al cancionero</a>
+    </div>
+{% endif %}
+{% endblock %}

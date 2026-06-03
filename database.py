@@ -121,8 +121,12 @@ def inicializar():
         """
     _ejecutar(crear)
 
-    # Migración para bases viejas (SQLite local que no tenían estas columnas).
-    if not USAR_POSTGRES:
+    # Migraciones de columnas nuevas.
+    if USAR_POSTGRES:
+        _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS categoria TEXT DEFAULT ''")
+        _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS youtube TEXT DEFAULT ''")
+        _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS estado TEXT DEFAULT 'aprobada'")
+    else:
         con = conectar()
         try:
             columnas = [f["name"] for f in con.execute("PRAGMA table_info(canciones)")]
@@ -130,9 +134,36 @@ def inicializar():
                 con.execute("ALTER TABLE canciones ADD COLUMN categoria TEXT DEFAULT ''")
             if "youtube" not in columnas:
                 con.execute("ALTER TABLE canciones ADD COLUMN youtube TEXT DEFAULT ''")
+            if "estado" not in columnas:
+                con.execute("ALTER TABLE canciones ADD COLUMN estado TEXT DEFAULT 'aprobada'")
             con.commit()
         finally:
             con.close()
+
+    # Tabla de usuarios (registro / login / roles).
+    if USAR_POSTGRES:
+        crear_usuarios = """
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id         SERIAL PRIMARY KEY,
+                usuario    TEXT UNIQUE NOT NULL,
+                email      TEXT DEFAULT '',
+                clave_hash TEXT NOT NULL,
+                rol        TEXT DEFAULT 'colaborador',
+                creado_en  TEXT DEFAULT (CURRENT_TIMESTAMP::text)
+            )
+        """
+    else:
+        crear_usuarios = """
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario    TEXT UNIQUE NOT NULL,
+                email      TEXT DEFAULT '',
+                clave_hash TEXT NOT NULL,
+                rol        TEXT DEFAULT 'colaborador',
+                creado_en  TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """
+    _ejecutar(crear_usuarios)
 
     # Quita títulos duplicados (por si una carga anterior quedó a medias)
     # y crea un índice único por título para que no se repitan nunca más.
@@ -182,25 +213,74 @@ def contar_canciones():
     return fila["n"] if fila else 0
 
 
-def listar_canciones(busqueda=""):
-    """Devuelve todas las canciones ordenadas por título.
+def listar_canciones(busqueda="", solo_aprobadas=True):
+    """Devuelve canciones ordenadas por título.
 
+    Si 'solo_aprobadas' es True, muestra únicamente las aprobadas (vista pública).
     Si se pasa 'busqueda', filtra por título, artista, etiquetas, categoría o letra.
     """
     like = "ILIKE" if USAR_POSTGRES else "LIKE"
     orden = "LOWER(titulo)" if USAR_POSTGRES else "titulo COLLATE NOCASE"
 
+    condiciones = []
+    params = []
+    if solo_aprobadas:
+        condiciones.append("(estado = 'aprobada' OR estado IS NULL)")
     if busqueda:
         patron = f"%{busqueda}%"
-        sql = f"""
-            SELECT * FROM canciones
-            WHERE titulo {like} ? OR artista {like} ? OR etiquetas {like} ?
-               OR categoria {like} ? OR letra {like} ?
-            ORDER BY {orden}
-        """
-        return _ejecutar(sql, (patron, patron, patron, patron, patron), fetch="all")
+        condiciones.append(
+            f"(titulo {like} ? OR artista {like} ? OR etiquetas {like} ? "
+            f"OR categoria {like} ? OR letra {like} ?)"
+        )
+        params += [patron, patron, patron, patron, patron]
 
-    return _ejecutar(f"SELECT * FROM canciones ORDER BY {orden}", fetch="all")
+    where = ("WHERE " + " AND ".join(condiciones)) if condiciones else ""
+    sql = f"SELECT * FROM canciones {where} ORDER BY {orden}"
+    return _ejecutar(sql, tuple(params), fetch="all")
+
+
+def listar_pendientes():
+    """Canciones que esperan aprobación (para el panel del administrador)."""
+    orden = "creada_en DESC"
+    return _ejecutar(
+        f"SELECT * FROM canciones WHERE estado = 'pendiente' ORDER BY {orden}",
+        fetch="all",
+    )
+
+
+def contar_pendientes():
+    """Cuántas canciones están esperando aprobación."""
+    fila = _ejecutar(
+        "SELECT COUNT(*) AS n FROM canciones WHERE estado = 'pendiente'", fetch="one"
+    )
+    return fila["n"] if fila else 0
+
+
+def cambiar_estado(cancion_id, estado):
+    """Cambia el estado de una canción (aprobada / pendiente)."""
+    _ejecutar("UPDATE canciones SET estado = ? WHERE id = ?", (estado, cancion_id))
+
+
+# ---------- Usuarios ----------
+
+def contar_usuarios():
+    fila = _ejecutar("SELECT COUNT(*) AS n FROM usuarios", fetch="one")
+    return fila["n"] if fila else 0
+
+
+def crear_usuario(usuario, email, clave_hash, rol="colaborador"):
+    """Crea un usuario y devuelve su id."""
+    sql = "INSERT INTO usuarios (usuario, email, clave_hash, rol) VALUES (?, ?, ?, ?)"
+    if USAR_POSTGRES:
+        sql += " RETURNING id"
+    return _ejecutar(sql, (usuario, email, clave_hash, rol), fetch="id")
+
+
+def obtener_usuario(usuario):
+    """Devuelve un usuario por su nombre, o None."""
+    return _ejecutar(
+        "SELECT * FROM usuarios WHERE usuario = ?", (usuario,), fetch="one"
+    )
 
 
 def agrupar_por_categoria(canciones):
@@ -236,29 +316,36 @@ def obtener_cancion(cancion_id):
     )
 
 
-def crear_cancion(titulo, artista, tono, etiquetas, letra, categoria="", youtube=""):
+def crear_cancion(titulo, artista, tono, etiquetas, letra, categoria="", youtube="",
+                  estado="aprobada"):
     """Inserta una canción nueva y devuelve su id."""
     sql = """
-        INSERT INTO canciones (titulo, artista, tono, etiquetas, letra, categoria, youtube)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO canciones (titulo, artista, tono, etiquetas, letra, categoria, youtube, estado)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """
     if USAR_POSTGRES:
         sql += " RETURNING id"
-    return _ejecutar(sql, (titulo, artista, tono, etiquetas, letra, categoria, youtube), fetch="id")
+    return _ejecutar(
+        sql, (titulo, artista, tono, etiquetas, letra, categoria, youtube, estado),
+        fetch="id",
+    )
 
 
 def actualizar_cancion(cancion_id, titulo, artista, tono, etiquetas, letra,
-                       categoria="", youtube=""):
-    """Modifica una canción existente."""
-    sql = """
-        UPDATE canciones
-        SET titulo = ?, artista = ?, tono = ?, etiquetas = ?, letra = ?,
-            categoria = ?, youtube = ?, modificada_en = CURRENT_TIMESTAMP
-        WHERE id = ?
-    """
+                       categoria="", youtube="", estado=None):
+    """Modifica una canción existente. Si 'estado' es None, no lo cambia."""
+    sets = ["titulo = ?", "artista = ?", "tono = ?", "etiquetas = ?", "letra = ?",
+            "categoria = ?", "youtube = ?", "modificada_en = CURRENT_TIMESTAMP"]
+    params = [titulo, artista, tono, etiquetas, letra, categoria, youtube]
+    if estado is not None:
+        sets.append("estado = ?")
+        params.append(estado)
+    params.append(cancion_id)
+
+    sql = f"UPDATE canciones SET {', '.join(sets)} WHERE id = ?"
     if USAR_POSTGRES:
         sql = sql.replace("CURRENT_TIMESTAMP", "(CURRENT_TIMESTAMP::text)")
-    _ejecutar(sql, (titulo, artista, tono, etiquetas, letra, categoria, youtube, cancion_id))
+    _ejecutar(sql, tuple(params))
 
 
 def borrar_cancion(cancion_id):

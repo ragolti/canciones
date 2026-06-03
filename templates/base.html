@@ -22,7 +22,17 @@
                 <option value="amanecer">🌅 Amanecer</option>
                 <option value="violeta">🎨 Violeta</option>
             </select>
-            <a href="{{ url_for('nueva_cancion') }}" class="btn btn-nueva">+ Nueva canción</a>
+            {% if usuario_actual %}
+                {% if usuario_actual.rol == 'admin' %}
+                    <a href="{{ url_for('revisar') }}" class="btn">📋 Revisar{% if pendientes %} <span class="rep-badge">{{ pendientes }}</span>{% endif %}</a>
+                {% endif %}
+                <a href="{{ url_for('nueva_cancion') }}" class="btn btn-nueva">+ Nueva canción</a>
+                <span class="usuario-chip">👤 {{ usuario_actual.usuario }}</span>
+                <a href="{{ url_for('logout') }}" class="btn">Salir</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="btn">Entrar</a>
+                <a href="{{ url_for('registro') }}" class="btn btn-nueva">Registrarse</a>
+            {% endif %}
         </div>
     </header>
     <script>

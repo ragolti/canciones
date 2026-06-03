@@ -12,8 +12,12 @@ Después abrí el navegador en:  http://127.0.0.1:5000
 
 import os
 import re
+from functools import wraps
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import (
+    Flask, render_template, request, redirect, url_for, flash, session, abort
+)
+from werkzeug.security import generate_password_hash, check_password_hash
 
 import database
 import acordes
@@ -22,6 +26,51 @@ app = Flask(__name__)
 # La clave secreta es necesaria para mostrar mensajes flash (avisos).
 # En el servidor (Render) se toma de una variable de entorno; en tu PC usa la de respaldo.
 app.secret_key = os.environ.get("SECRET_KEY", "cambia-esto-por-cualquier-texto-secreto")
+
+
+# ---------- Sesión / usuarios ----------
+
+def usuario_actual():
+    """Devuelve los datos del usuario logueado (o None si no hay sesión)."""
+    if session.get("usuario_id"):
+        return {
+            "id": session["usuario_id"],
+            "usuario": session.get("usuario"),
+            "rol": session.get("rol"),
+        }
+    return None
+
+
+def es_admin():
+    u = usuario_actual()
+    return bool(u and u["rol"] == "admin")
+
+
+@app.context_processor
+def inyectar_usuario():
+    """Hace que las plantillas conozcan al usuario logueado y los pendientes."""
+    pendientes = database.contar_pendientes() if es_admin() else 0
+    return {"usuario_actual": usuario_actual(), "pendientes": pendientes}
+
+
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not usuario_actual():
+            flash("Necesitás iniciar sesión para hacer eso.")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def admin_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not es_admin():
+            flash("Solo el administrador puede hacer eso.")
+            return redirect(url_for("inicio"))
+        return f(*args, **kwargs)
+    return wrapper
 
 # Crea la tabla la primera vez que se ejecuta.
 database.inicializar()
@@ -110,6 +159,88 @@ def presentar_cancion(cancion_id):
         return redirect(url_for("inicio"))
     datos = _cancion_transpuesta(cancion, _leer_semitonos())
     return render_template("presentar.html", cancion=datos)
+
+
+@app.route("/registro", methods=["GET", "POST"])
+def registro():
+    """Registro de un usuario nuevo. El primero que se registra queda como admin."""
+    if request.method == "POST":
+        usuario = request.form.get("usuario", "").strip()
+        email = request.form.get("email", "").strip()
+        clave = request.form.get("clave", "")
+        clave2 = request.form.get("clave2", "")
+
+        if not usuario or not clave:
+            flash("Usuario y contraseña son obligatorios.")
+            return render_template("registro.html", datos=request.form)
+        if clave != clave2:
+            flash("Las contraseñas no coinciden.")
+            return render_template("registro.html", datos=request.form)
+        if database.obtener_usuario(usuario):
+            flash("Ese nombre de usuario ya existe.")
+            return render_template("registro.html", datos=request.form)
+
+        # El primer usuario del sistema es el administrador.
+        rol = "admin" if database.contar_usuarios() == 0 else "colaborador"
+        nuevo_id = database.crear_usuario(
+            usuario, email, generate_password_hash(clave), rol
+        )
+        session["usuario_id"] = nuevo_id
+        session["usuario"] = usuario
+        session["rol"] = rol
+        flash("¡Cuenta creada! " + ("Sos el administrador." if rol == "admin" else "Bienvenido/a."))
+        return redirect(url_for("inicio"))
+
+    return render_template("registro.html", datos={})
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    """Inicio de sesión."""
+    if request.method == "POST":
+        usuario = request.form.get("usuario", "").strip()
+        clave = request.form.get("clave", "")
+        u = database.obtener_usuario(usuario)
+        if u and check_password_hash(u["clave_hash"], clave):
+            session["usuario_id"] = u["id"]
+            session["usuario"] = u["usuario"]
+            session["rol"] = u["rol"]
+            flash(f"¡Hola, {u['usuario']}!")
+            return redirect(url_for("inicio"))
+        flash("Usuario o contraseña incorrectos.")
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    """Cierra la sesión."""
+    session.clear()
+    flash("Sesión cerrada.")
+    return redirect(url_for("inicio"))
+
+
+@app.route("/revisar")
+@admin_required
+def revisar():
+    """Panel del administrador: canciones pendientes de aprobación."""
+    pendientes = database.listar_pendientes()
+    return render_template("revisar.html", pendientes=pendientes)
+
+
+@app.route("/aprobar/<int:cancion_id>", methods=["POST"])
+@admin_required
+def aprobar(cancion_id):
+    database.cambiar_estado(cancion_id, "aprobada")
+    flash("Canción aprobada y publicada.")
+    return redirect(url_for("revisar"))
+
+
+@app.route("/rechazar/<int:cancion_id>", methods=["POST"])
+@admin_required
+def rechazar(cancion_id):
+    database.borrar_cancion(cancion_id)
+    flash("Canción rechazada y eliminada.")
+    return redirect(url_for("revisar"))
 
 
 @app.route("/repertorio/pdf")
@@ -217,14 +348,18 @@ def proyeccion():
 
 
 @app.route("/nueva", methods=["GET", "POST"])
+@login_required
 def nueva_cancion():
     """Formulario para crear una canción nueva."""
     if request.method == "POST":
         titulo = request.form.get("titulo", "").strip()
         if not titulo:
             flash("El título es obligatorio.")
-            return render_template("form.html", cancion=request.form, accion="nueva")
+            return render_template("form.html", cancion=request.form, accion="nueva",
+                                   categorias=database.CATEGORIAS_SUGERIDAS)
 
+        # Admin: se publica directo. Colaborador: queda pendiente de aprobación.
+        estado = "aprobada" if es_admin() else "pendiente"
         nuevo_id = database.crear_cancion(
             titulo,
             request.form.get("artista", "").strip(),
@@ -233,8 +368,12 @@ def nueva_cancion():
             request.form.get("letra", ""),
             request.form.get("categoria", "").strip(),
             request.form.get("youtube", "").strip(),
+            estado,
         )
-        flash("Canción guardada.")
+        if estado == "pendiente":
+            flash("¡Gracias! Tu canción quedó pendiente de aprobación por el administrador.")
+            return redirect(url_for("inicio"))
+        flash("Canción guardada y publicada.")
         return redirect(url_for("ver_cancion", cancion_id=nuevo_id))
 
     # GET: formulario vacío.
@@ -245,6 +384,7 @@ def nueva_cancion():
 
 
 @app.route("/editar/<int:cancion_id>", methods=["GET", "POST"])
+@login_required
 def editar_cancion(cancion_id):
     """Formulario para modificar una canción existente."""
     cancion = database.obtener_cancion(cancion_id)
@@ -256,8 +396,11 @@ def editar_cancion(cancion_id):
         titulo = request.form.get("titulo", "").strip()
         if not titulo:
             flash("El título es obligatorio.")
-            return render_template("form.html", cancion=request.form, accion="editar")
+            return render_template("form.html", cancion=request.form, accion="editar",
+                                   categorias=database.CATEGORIAS_SUGERIDAS)
 
+        # Admin: el cambio se publica. Colaborador: la canción pasa a pendiente.
+        estado = "aprobada" if es_admin() else "pendiente"
         database.actualizar_cancion(
             cancion_id,
             titulo,
@@ -267,7 +410,11 @@ def editar_cancion(cancion_id):
             request.form.get("letra", ""),
             request.form.get("categoria", "").strip(),
             request.form.get("youtube", "").strip(),
+            estado,
         )
+        if estado == "pendiente":
+            flash("Tu edición quedó pendiente de aprobación por el administrador.")
+            return redirect(url_for("inicio"))
         flash("Cambios guardados.")
         return redirect(url_for("ver_cancion", cancion_id=cancion_id))
 
@@ -278,6 +425,7 @@ def editar_cancion(cancion_id):
 
 
 @app.route("/editar-acordes/<int:cancion_id>", methods=["GET", "POST"])
+@login_required
 def editar_acordes(cancion_id):
     """Editor visual: arrastrar/editar los acordes sobre la letra."""
     cancion = database.obtener_cancion(cancion_id)
@@ -286,6 +434,7 @@ def editar_acordes(cancion_id):
         return redirect(url_for("inicio"))
 
     if request.method == "POST":
+        estado = "aprobada" if es_admin() else "pendiente"
         # Solo cambia la letra (con los acordes reposicionados); el resto igual.
         database.actualizar_cancion(
             cancion_id,
@@ -296,7 +445,11 @@ def editar_acordes(cancion_id):
             request.form.get("letra", ""),
             cancion["categoria"] if "categoria" in cancion.keys() else "",
             cancion["youtube"] if "youtube" in cancion.keys() else "",
+            estado,
         )
+        if estado == "pendiente":
+            flash("Tu edición de acordes quedó pendiente de aprobación.")
+            return redirect(url_for("inicio"))
         flash("Acordes guardados.")
         return redirect(url_for("ver_cancion", cancion_id=cancion_id))
 
@@ -304,8 +457,9 @@ def editar_acordes(cancion_id):
 
 
 @app.route("/borrar/<int:cancion_id>", methods=["POST"])
+@admin_required
 def borrar(cancion_id):
-    """Elimina una canción (se llama desde un botón con confirmación)."""
+    """Elimina una canción (solo el administrador)."""
     database.borrar_cancion(cancion_id)
     flash("Canción eliminada.")
     return redirect(url_for("inicio"))

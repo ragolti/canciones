@@ -88,6 +88,14 @@ header {
 }
 .tema-selector option { color: #222; }
 
+.usuario-chip {
+    color: #fff;
+    font-size: 0.85rem;
+    background: rgba(255,255,255,0.15);
+    border-radius: 14px;
+    padding: 5px 12px;
+}
+
 /* El botón "+ Nueva canción" sobre el degradé del header */
 header .btn-nueva {
     background: rgba(255,255,255,0.18);

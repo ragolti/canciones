@@ -203,8 +203,11 @@ Pendiente opcional a futuro: sumar foto de cabecera (hero) de banco gratis.
 - ✅ Las 149 canciones viajan en la base `canciones.db` incluida en el repo.
 - ⏳ PENDIENTE: apuntar el dominio **www.canciones.com.ar** (en trámite en nic.ar) al servicio
   de Render (agregar custom domain en Render + configurar DNS en nic.ar).
-- NOTA: plan free de Render "duerme" tras inactividad (1ª visita tarda ~50s). Disco efímero:
-  edición/usuarios/historial (items 12, 15) requieren base persistente (Render pago o externa).
+- NOTA: plan free de Render "duerme" tras inactividad (1ª visita tarda ~50s).
+- ✅ BASE PERSISTENTE RESUELTA: conectada a **Neon (Postgres gratis)** vía variable de entorno
+  DATABASE_URL en Render. Persistencia confirmada (los cambios sobreviven a reinicios).
+  La app usa doble motor: SQLite en local, Postgres/Neon online. Carga inicial idempotente
+  (una conexión, índice único por título, 1 worker). Esto habilita los items 12 y 15.
 
 ---
 

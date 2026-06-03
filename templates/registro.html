@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titulo %}Registrarse · Adoremos{% endblock %}
+{% block contenido %}
+<h1>Crear cuenta</h1>
+<p class="sub">Registrate para poder agregar y editar canciones.</p>
+
+<form method="post" class="formulario" style="max-width:420px;">
+    <label>
+        Nombre de usuario *
+        <input type="text" name="usuario" required
+               value="{{ datos['usuario'] if datos and datos['usuario'] is defined else '' }}">
+    </label>
+    <label>
+        Email (opcional)
+        <input type="email" name="email"
+               value="{{ datos['email'] if datos and datos['email'] is defined else '' }}">
+    </label>
+    <label>
+        Contraseña *
+        <input type="password" name="clave" required>
+    </label>
+    <label>
+        Repetir contraseña *
+        <input type="password" name="clave2" required>
+    </label>
+    <div class="acciones">
+        <button type="submit" class="btn btn-nueva">Crear cuenta</button>
+        <a href="{{ url_for('login') }}" class="btn btn-gris">Ya tengo cuenta</a>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block titulo %}Entrar · Adoremos{% endblock %}
+{% block contenido %}
+<h1>Iniciar sesión</h1>
+
+<form method="post" class="formulario" style="max-width:420px;">
+    <label>
+        Nombre de usuario
+        <input type="text" name="usuario" required autofocus>
+    </label>
+    <label>
+        Contraseña
+        <input type="password" name="clave" required>
+    </label>
+    <div class="acciones">
+        <button type="submit" class="btn btn-nueva">Entrar</button>
+        <a href="{{ url_for('registro') }}" class="btn btn-gris">Crear cuenta</a>
+    </div>
+</form>
+{% endblock %}
