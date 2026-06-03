@@ -165,6 +165,33 @@ def inicializar():
         """
     _ejecutar(crear_usuarios)
 
+    # Tabla de listas guardadas (historial de repertorios de eventos).
+    if USAR_POSTGRES:
+        crear_listas = """
+            CREATE TABLE IF NOT EXISTS listas (
+                id             SERIAL PRIMARY KEY,
+                nombre         TEXT DEFAULT '',
+                usuario        TEXT DEFAULT '',
+                usuario_id     INTEGER,
+                favorita       INTEGER DEFAULT 0,
+                canciones_json TEXT DEFAULT '[]',
+                creada_en      TEXT DEFAULT (CURRENT_TIMESTAMP::text)
+            )
+        """
+    else:
+        crear_listas = """
+            CREATE TABLE IF NOT EXISTS listas (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre         TEXT DEFAULT '',
+                usuario        TEXT DEFAULT '',
+                usuario_id     INTEGER,
+                favorita       INTEGER DEFAULT 0,
+                canciones_json TEXT DEFAULT '[]',
+                creada_en      TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """
+    _ejecutar(crear_listas)
+
     # Quita títulos duplicados (por si una carga anterior quedó a medias)
     # y crea un índice único por título para que no se repitan nunca más.
     if USAR_POSTGRES:
@@ -281,6 +308,54 @@ def obtener_usuario(usuario):
     return _ejecutar(
         "SELECT * FROM usuarios WHERE usuario = ?", (usuario,), fetch="one"
     )
+
+
+# ---------- Listas guardadas (historial de eventos) ----------
+
+def crear_lista(nombre, usuario, usuario_id, canciones_json):
+    """Guarda una lista de evento y devuelve su id."""
+    sql = """
+        INSERT INTO listas (nombre, usuario, usuario_id, canciones_json)
+        VALUES (?, ?, ?, ?)
+    """
+    if USAR_POSTGRES:
+        sql += " RETURNING id"
+    return _ejecutar(sql, (nombre, usuario, usuario_id, canciones_json), fetch="id")
+
+
+def listar_listas(usuario=None, solo_favoritas=False):
+    """Lista las listas guardadas. Filtra por usuario y/o favoritas."""
+    cond = []
+    params = []
+    if usuario:
+        cond.append("usuario = ?")
+        params.append(usuario)
+    if solo_favoritas:
+        cond.append("favorita = 1")
+    where = ("WHERE " + " AND ".join(cond)) if cond else ""
+    sql = f"SELECT * FROM listas {where} ORDER BY favorita DESC, creada_en DESC"
+    return _ejecutar(sql, tuple(params), fetch="all")
+
+
+def obtener_lista(lista_id):
+    return _ejecutar("SELECT * FROM listas WHERE id = ?", (lista_id,), fetch="one")
+
+
+def cambiar_favorita(lista_id, valor):
+    _ejecutar("UPDATE listas SET favorita = ? WHERE id = ?", (1 if valor else 0, lista_id))
+
+
+def borrar_lista(lista_id):
+    _ejecutar("DELETE FROM listas WHERE id = ?", (lista_id,))
+
+
+def usuarios_de_listas():
+    """Nombres de usuario que tienen listas guardadas (para el filtro)."""
+    filas = _ejecutar(
+        "SELECT DISTINCT usuario FROM listas WHERE usuario <> '' ORDER BY usuario",
+        fetch="all",
+    )
+    return [f["usuario"] for f in filas] if filas else []
 
 
 def agrupar_por_categoria(canciones):

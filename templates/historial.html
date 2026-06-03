@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block titulo %}Historial de listas · Adoremos{% endblock %}
+{% block contenido %}
+<h1>📅 Historial de listas</h1>
+
+<form class="hist-filtros" method="get" action="{{ url_for('historial') }}">
+    <label>Usuario:
+        <select name="usuario" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            {% for u in usuarios %}
+                <option value="{{ u }}" {% if u == filtro_usuario %}selected{% endif %}>{{ u }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label class="hist-fav-check">
+        <input type="checkbox" name="fav" value="1" {% if solo_fav %}checked{% endif %}
+               onchange="this.form.submit()"> ⭐ Solo favoritas
+    </label>
+</form>
+
+{% if listas %}
+<div class="hist-grid">
+    <!-- Izquierda: listas guardadas -->
+    <aside class="hist-listas">
+        {% for l in listas %}
+            <div class="hist-item" onclick="verLista({{ l['id'] }})" id="hist-item-{{ l['id'] }}">
+                <div class="hist-item-top">
+                    <span class="hist-nombre">{{ l['nombre'] }}</span>
+                    {% if l['favorita'] %}<span class="hist-estrella">⭐</span>{% endif %}
+                </div>
+                <div class="hist-meta">
+                    👤 {{ l['usuario'] or '—' }} · {{ l['canciones']|length }} canciones
+                </div>
+            </div>
+        {% endfor %}
+    </aside>
+
+    <!-- Derecha: detalle de la lista elegida -->
+    <section class="hist-detalle" id="hist-detalle">
+        <p class="hist-vacio">← Elegí una lista de la izquierda para ver sus canciones.</p>
+    </section>
+</div>
+{% else %}
+    <div class="vacio">
+        <p>Todavía no hay listas guardadas{% if filtro_usuario or solo_fav %} con ese filtro{% endif %}.</p>
+        <a href="{{ url_for('inicio') }}" class="btn btn-gris">← Volver al cancionero</a>
+    </div>
+{% endif %}
+
+<script>
+// Datos de todas las listas (para mostrar el detalle al hacer clic).
+const LISTAS = {{ listas|tojson }};
+const USUARIO_ACTUAL = {{ (usuario_actual.usuario if usuario_actual else '')|tojson }};
+const ES_ADMIN = {{ (usuario_actual and usuario_actual.rol == 'admin')|tojson }};
+
+function escaparH(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+function verLista(id) {
+    document.querySelectorAll(".hist-item").forEach(function (el) { el.classList.remove("activa"); });
+    const item = document.getElementById("hist-item-" + id);
+    if (item) item.classList.add("activa");
+
+    const l = LISTAS.find(function (x) { return x.id === id; });
+    if (!l) return;
+    const cont = document.getElementById("hist-detalle");
+
+    let html = '<div class="hist-detalle-cab"><h2>' + escaparH(l.nombre) + '</h2>' +
+        '<div class="hist-meta">👤 ' + escaparH(l.usuario || "—") + '</div></div>';
+
+    html += '<ol class="hist-canciones">';
+    (l.canciones || []).forEach(function (c) {
+        const tono = c.tono ? '<span class="rep-tono">' + escaparH(c.tono) + '</span>' : '';
+        html += '<li>' + tono + '<a href="/cancion/' + c.id + '">' + escaparH(c.titulo) + '</a></li>';
+    });
+    html += '</ol>';
+
+    // Acciones
+    html += '<div class="acciones" style="margin-top:14px;flex-wrap:wrap;gap:8px;">';
+    html += '<button class="btn btn-nueva" onclick=\'usarLista(' + id + ')\'>📋 Usar esta lista</button>';
+    if (USUARIO_ACTUAL) {
+        const fav = l.favorita ? "Quitar de favoritas" : "⭐ Marcar favorita";
+        html += '<form method="post" action="/listas/' + id + '/favorita" style="display:inline;">' +
+                '<button class="btn">' + fav + '</button></form>';
+    }
+    if (USUARIO_ACTUAL === l.usuario || ES_ADMIN) {
+        html += '<form method="post" action="/listas/' + id + '/borrar" style="display:inline;" ' +
+                'onsubmit="return confirm(\'¿Borrar esta lista?\');">' +
+                '<button class="btn btn-rojo">🗑️ Borrar</button></form>';
+    }
+    html += '</div>';
+
+    cont.innerHTML = html;
+}
+
+function usarLista(id) {
+    const l = LISTAS.find(function (x) { return x.id === id; });
+    if (!l) return;
+    repCargarLista(l.canciones || []);
+    window.location = "/";
+}
+</script>
+{% endblock %}

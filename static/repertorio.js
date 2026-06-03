@@ -121,6 +121,40 @@ function repImprimir() {
     window.open(url, "_blank");
 }
 
+// Guarda la lista actual en el historial (requiere estar logueado).
+function repGuardarHistorial() {
+    const lista = repCargar();
+    if (lista.length === 0) {
+        alert("La lista está vacía. Agregá canciones con el botón ➕.");
+        return;
+    }
+    let nombre = repFechaTexto();
+    if (!nombre) {
+        nombre = prompt("Nombre o fecha de la lista (ej: Sábado 13 de junio):", "");
+        if (nombre === null) return;
+    }
+    fetch("/listas/guardar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: nombre || "Lista sin fecha", canciones: lista }),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+        if (d.ok) {
+            window.location = "/historial";
+        } else {
+            alert(d.error || "No se pudo guardar la lista.");
+        }
+    })
+    .catch(function () { alert("No se pudo guardar la lista."); });
+}
+
+// Reemplaza el repertorio actual por el de una lista guardada (desde el historial).
+function repCargarLista(canciones) {
+    repGuardar(canciones || []);
+    repAbrir();
+}
+
 // Abre la pantalla de control de proyección con las canciones de la lista.
 function repProyectar() {
     const lista = repCargar();

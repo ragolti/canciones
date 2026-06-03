@@ -212,7 +212,16 @@ Pendiente opcional a futuro: sumar foto de cabecera (hero) de banco gratis.
 ---
 
 ## 12. Registro de usuarios y carga de canciones con aprobación
-**Estado:** pendiente
+**Estado:** ✅ COMPLETADO
+
+Implementado: registro (/registro), login (/login), logout. El PRIMER usuario que se registra
+queda como **admin**; el resto como **colaborador**. Contraseñas con hash seguro (werkzeug).
+- Colaborador: puede agregar/editar canciones, pero quedan en estado **pendiente** (no se ven
+  en público hasta que el admin las aprueba).
+- Admin: publica directo, ve el botón "📋 Revisar (n)" y aprueba/rechaza en /revisar.
+- Solo el admin puede borrar canciones.
+- Columna `estado` (aprobada/pendiente) en canciones; el público ve solo las aprobadas.
+NOTA: editar una canción aprobada (por colaborador) la pasa a pendiente hasta re-aprobación.
 
 - Que las personas se puedan **registrar** e iniciar sesión.
 - Usuarios registrados pueden **Editar y agregar nuevas canciones**.

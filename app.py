@@ -12,6 +12,7 @@ Después abrí el navegador en:  http://127.0.0.1:5000
 
 import os
 import re
+import json
 from functools import wraps
 
 from flask import (
@@ -241,6 +242,73 @@ def rechazar(cancion_id):
     database.borrar_cancion(cancion_id)
     flash("Canción rechazada y eliminada.")
     return redirect(url_for("revisar"))
+
+
+@app.route("/listas/guardar", methods=["POST"])
+@login_required
+def guardar_lista():
+    """Guarda la lista actual del repertorio en el historial (del usuario)."""
+    datos = request.get_json(silent=True) or {}
+    nombre = (datos.get("nombre") or "").strip() or "Lista sin fecha"
+    canciones = datos.get("canciones") or []
+    if not canciones:
+        return {"ok": False, "error": "La lista está vacía."}, 400
+
+    u = usuario_actual()
+    nuevo_id = database.crear_lista(
+        nombre, u["usuario"], u["id"], json.dumps(canciones, ensure_ascii=False)
+    )
+    return {"ok": True, "id": nuevo_id}
+
+
+@app.route("/historial")
+def historial():
+    """Historial de listas guardadas, con filtro por usuario y favoritas."""
+    filtro_usuario = request.args.get("usuario", "").strip()
+    solo_fav = request.args.get("fav") == "1"
+    listas = database.listar_listas(
+        usuario=filtro_usuario or None, solo_favoritas=solo_fav
+    )
+    # Parsear las canciones de cada lista para mostrarlas.
+    listas_datos = []
+    for l in listas:
+        d = dict(l)
+        try:
+            d["canciones"] = json.loads(l["canciones_json"] or "[]")
+        except Exception:
+            d["canciones"] = []
+        listas_datos.append(d)
+
+    return render_template(
+        "historial.html",
+        listas=listas_datos,
+        usuarios=database.usuarios_de_listas(),
+        filtro_usuario=filtro_usuario,
+        solo_fav=solo_fav,
+    )
+
+
+@app.route("/listas/<int:lista_id>/favorita", methods=["POST"])
+@login_required
+def favorita_lista(lista_id):
+    lista = database.obtener_lista(lista_id)
+    if lista:
+        database.cambiar_favorita(lista_id, not lista["favorita"])
+    return redirect(request.referrer or url_for("historial"))
+
+
+@app.route("/listas/<int:lista_id>/borrar", methods=["POST"])
+@login_required
+def borrar_lista_ruta(lista_id):
+    lista = database.obtener_lista(lista_id)
+    u = usuario_actual()
+    # La puede borrar quien la creó o el administrador.
+    if lista and (lista["usuario_id"] == u["id"] or es_admin()):
+        database.borrar_lista(lista_id)
+        flash("Lista eliminada.")
+    else:
+        flash("No podés borrar esa lista.")
+    return redirect(url_for("historial"))
 
 
 @app.route("/repertorio/pdf")

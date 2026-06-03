@@ -103,6 +103,12 @@
             <button class="btn btn-wsp" onclick="repWhatsApp()">📲 Enviar lista por WhatsApp</button>
             <button class="btn btn-yt" onclick="repYouTube()">🎬 Playlist de YouTube</button>
             <button class="btn btn-proy" onclick="repProyectar()">🖥️ Proyectar lista</button>
+            {% if usuario_actual %}
+                <button class="btn" onclick="repGuardarHistorial()">💾 Guardar en historial</button>
+            {% else %}
+                <a class="btn btn-gris" href="{{ url_for('login') }}">Iniciá sesión para guardar la lista</a>
+            {% endif %}
+            <a class="btn btn-gris" href="{{ url_for('historial') }}">📅 Ver historial de listas</a>
             <p class="rep-nota">El mensaje lleva la fecha y el listado de canciones. El PDF se guarda con el nombre de la fecha (generalo con 📄 y elegí "Guardar como PDF").</p>
         </div>
 
