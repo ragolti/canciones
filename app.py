@@ -26,14 +26,21 @@ app.secret_key = os.environ.get("SECRET_KEY", "cambia-esto-por-cualquier-texto-s
 # Crea la tabla la primera vez que se ejecuta.
 database.inicializar()
 
-# Si la base está vacía (por ejemplo, la primera vez en Neon/Postgres online),
-# carga automáticamente las 149 canciones de la "Lista Nueva".
-if database.contar_canciones() == 0:
-    try:
-        import importar_lista_nueva
-        importar_lista_nueva.main()
-    except Exception as e:
-        print("No se pudieron cargar las canciones iniciales:", e)
+# Carga inicial de las 149 canciones de la "Lista Nueva".
+# Se ejecuta si faltan canciones (por ejemplo, la primera vez en Neon, o si
+# una carga anterior quedó incompleta). Es idempotente: no duplica.
+try:
+    import importar_lista_nueva
+    _esperadas = len(importar_lista_nueva.CANCIONES)
+    if database.contar_canciones() < _esperadas:
+        _filas = [
+            (titulo, artista, tono, "Lista Nueva", letra.strip(), "Nuevas y últimas", "")
+            for (titulo, artista, tono, letra) in importar_lista_nueva.CANCIONES
+        ]
+        database.crear_varias(_filas)
+        print(f"Carga inicial: ahora hay {database.contar_canciones()} canciones.")
+except Exception as e:
+    print("No se pudieron cargar las canciones iniciales:", e)
 
 
 @app.route("/")

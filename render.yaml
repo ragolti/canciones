@@ -6,7 +6,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn app:app --workers 1 --timeout 120
     envVars:
       - key: SECRET_KEY
         generateValue: true   # Render genera una clave secreta segura sola

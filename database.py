@@ -134,6 +134,47 @@ def inicializar():
         finally:
             con.close()
 
+    # Quita títulos duplicados (por si una carga anterior quedó a medias)
+    # y crea un índice único por título para que no se repitan nunca más.
+    if USAR_POSTGRES:
+        _ejecutar(
+            "DELETE FROM canciones a USING canciones b "
+            "WHERE a.id > b.id AND a.titulo = b.titulo"
+        )
+    else:
+        _ejecutar(
+            "DELETE FROM canciones WHERE id NOT IN "
+            "(SELECT MIN(id) FROM canciones GROUP BY titulo)"
+        )
+    _ejecutar("CREATE UNIQUE INDEX IF NOT EXISTS ux_canciones_titulo ON canciones (titulo)")
+
+
+def crear_varias(filas):
+    """Inserta muchas canciones en UNA sola conexión (rápido y eficiente).
+
+    Cada fila: (titulo, artista, tono, etiquetas, letra, categoria, youtube).
+    Si el título ya existe, la saltea (no duplica). Ideal para la carga inicial.
+    """
+    con = conectar()
+    try:
+        cur = con.cursor()
+        if USAR_POSTGRES:
+            sql = (
+                "INSERT INTO canciones "
+                "(titulo, artista, tono, etiquetas, letra, categoria, youtube) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (titulo) DO NOTHING"
+            )
+        else:
+            sql = (
+                "INSERT OR IGNORE INTO canciones "
+                "(titulo, artista, tono, etiquetas, letra, categoria, youtube) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)"
+            )
+        cur.executemany(sql, filas)
+        con.commit()
+    finally:
+        con.close()
+
 
 def contar_canciones():
     """Cantidad total de canciones (para saber si hay que cargar datos)."""
