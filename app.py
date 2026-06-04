@@ -342,6 +342,21 @@ def guardar_lista():
     return {"ok": True, "id": nuevo_id}
 
 
+@app.route("/sugerencias")
+@login_required
+def sugerencias():
+    """Sugiere canciones que hace tiempo no se cantan (según tus listas)."""
+    estilo = request.args.get("estilo", "").strip()
+    u = usuario_actual()
+    sugeridas = database.sugerencias(u["usuario"], estilo or None, 10)
+    return render_template(
+        "sugerencias.html",
+        sugeridas=sugeridas,
+        estilo=estilo,
+        estilos=database.CATEGORIAS_SUGERIDAS,
+    )
+
+
 @app.route("/historial")
 def historial():
     """Historial de listas guardadas, con filtro por usuario y favoritas."""

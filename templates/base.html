@@ -23,6 +23,7 @@
                 <option value="violeta">🎨 Violeta</option>
             </select>
             {% if usuario_actual %}
+                <a href="{{ url_for('sugerencias') }}" class="btn">💡 Sugerencias</a>
                 {% if usuario_actual.rol == 'admin' %}
                     <a href="{{ url_for('revisar') }}" class="btn">📋 Revisar{% if pendientes %} <span class="rep-badge">{{ pendientes }}</span>{% endif %}</a>
                 {% endif %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block titulo %}Sugerencias · Adoremos{% endblock %}
+{% block contenido %}
+<h1>💡 Sugerencias</h1>
+<p class="sub">Canciones que hace tiempo no cantás (no están en tus listas del historial).</p>
+
+<form class="filtros-barra" method="get" action="{{ url_for('sugerencias') }}">
+    <label>Estilo:
+        <select name="estilo" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            {% for e in estilos %}<option value="{{ e }}" {% if e==estilo %}selected{% endif %}>{{ e }}</option>{% endfor %}
+        </select>
+    </label>
+    <span class="contador">{{ sugeridas|length }} sugerencia(s)</span>
+</form>
+
+{% if sugeridas %}
+    <ol class="hist-canciones sugerencias-lista">
+        {% for c in sugeridas %}
+            <li>
+                {% if c['tono'] %}<span class="rep-tono">{{ c['tono'] }}</span>{% endif %}
+                <a href="{{ url_for('ver_cancion', cancion_id=c['id']) }}">{{ c['titulo'] }}</a>
+                <button type="button" class="btn btn-chico btn-agregar-sug"
+                        data-id="{{ c['id'] }}" data-titulo="{{ c['titulo'] }}" data-tono="{{ c['tono'] or '' }}">➕ a la lista</button>
+            </li>
+        {% endfor %}
+    </ol>
+    <button class="btn btn-nueva" onclick="agregarTodasSug()" style="margin-top:10px;">➕ Agregar todas a la lista del evento</button>
+{% else %}
+    <p class="hist-vacio">No hay sugerencias para ese estilo (puede que ya las hayas cantado todas 🎉).</p>
+{% endif %}
+
+<script>
+// Agregar una sugerencia a la lista del evento.
+document.addEventListener("click", function (e) {
+    const b = e.target.closest(".btn-agregar-sug");
+    if (!b) return;
+    repAgregar(Number(b.dataset.id), b.dataset.titulo, b.dataset.tono);
+    b.textContent = "✓ agregada";
+});
+function agregarTodasSug() {
+    document.querySelectorAll(".btn-agregar-sug").forEach(function (b) {
+        repAgregar(Number(b.dataset.id), b.dataset.titulo, b.dataset.tono);
+        b.textContent = "✓ agregada";
+    });
+}
+</script>
+{% endblock %}

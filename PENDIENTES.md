@@ -443,4 +443,12 @@ borrar/modificar) y afinar permisos por usuario.
 
 ---
 
+## 35. Botón "Sugerencias" (canciones poco usadas, por estilo)
+**Estado:** ✅ COMPLETADO
+Botón "💡 Sugerencias" en el encabezado (logueado). Página con desplegable de Estilo que sugiere
+~10 canciones que hace tiempo no se cantan según las listas del usuario (prioriza las nunca usadas,
+luego las más antiguas). Cada sugerencia se puede agregar a la lista del evento (o todas juntas).
+
+---
+
 <!-- Próximos items se agregan acá debajo -->

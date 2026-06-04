@@ -418,6 +418,41 @@ def borrar_lista(lista_id):
     _ejecutar("DELETE FROM listas WHERE id = ?", (lista_id,))
 
 
+def sugerencias(usuario, estilo=None, limite=10):
+    """Sugiere canciones poco/nada usadas según las listas del usuario.
+
+    Prioriza las que NUNCA aparecieron en las listas del usuario; luego las que
+    hace más tiempo que no se cantan. Se puede filtrar por estilo (categoria).
+    """
+    # Canciones candidatas (aprobadas, opcionalmente de un estilo).
+    canciones = listar_canciones(solo_aprobadas=True)
+    if estilo:
+        canciones = [c for c in canciones if (c["categoria"] or "") == estilo]
+
+    # Última vez que el usuario usó cada canción (según sus listas).
+    listas = _ejecutar(
+        "SELECT canciones_json, creada_en FROM listas WHERE usuario = ?",
+        (usuario,), fetch="all",
+    ) or []
+    ultima_vez = {}
+    for l in listas:
+        fecha = l["creada_en"] or ""
+        try:
+            for c in json.loads(l["canciones_json"] or "[]"):
+                cid = int(c.get("id", -1))
+                if cid not in ultima_vez or fecha > ultima_vez[cid]:
+                    ultima_vez[cid] = fecha
+        except Exception:
+            pass
+
+    # Orden: primero las nunca usadas; luego las más antiguas.
+    def clave(c):
+        f = ultima_vez.get(c["id"])
+        return (f is not None, f or "")
+    candidatas = sorted(canciones, key=clave)
+    return candidatas[:limite]
+
+
 def usuarios_de_listas():
     """Nombres de usuario que tienen listas guardadas (para el filtro)."""
     filas = _ejecutar(
