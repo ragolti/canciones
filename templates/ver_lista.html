@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Lista #{{ lista['id'] }} · Adoremos{% endblock %}
+{% block contenido %}
+<h1>📋 Lista #{{ lista['id'] }}</h1>
+<p class="sub">{{ lista['nombre'] }} · 👤 {{ lista['usuario'] or '—' }}</p>
+
+<ol class="hist-canciones">
+    {% for c in canciones %}
+        <li>
+            {% if c.tono %}<span class="rep-tono">{{ c.tono }}</span>{% endif %}
+            <a href="{{ url_for('ver_cancion', cancion_id=c.id) }}">{{ c.titulo }}</a>
+        </li>
+    {% endfor %}
+</ol>
+
+<div class="acciones" style="flex-wrap:wrap; gap:8px;">
+    <button class="btn btn-nueva" onclick='usarEstaLista()'>📋 Usar esta lista</button>
+    <a href="{{ url_for('historial') }}" class="btn btn-gris">← Historial</a>
+</div>
+
+<script>
+const ESTA_LISTA = {{ canciones|tojson }};
+function usarEstaLista() {
+    repCargarLista(ESTA_LISTA);
+    window.location = "/";
+}
+</script>
+{% endblock %}

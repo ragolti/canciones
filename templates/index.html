@@ -10,6 +10,31 @@
     {% endif %}
 </form>
 
+<form class="filtros-barra" method="get" action="{{ url_for('inicio') }}">
+    {% if busqueda %}<input type="hidden" name="q" value="{{ busqueda }}">{% endif %}
+    <label>Grupo:
+        <select name="grupo" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            {% for e in estilos %}<option value="{{ e }}" {% if e==f_grupo %}selected{% endif %}>{{ e }}</option>{% endfor %}
+        </select>
+    </label>
+    <label>Función:
+        <select name="funcion" onchange="this.form.submit()">
+            <option value="">Todas</option>
+            {% for f in funciones %}<option value="{{ f }}" {% if f==f_funcion %}selected{% endif %}>{{ f }}</option>{% endfor %}
+        </select>
+    </label>
+    <label>Tempo:
+        <select name="tempo" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            {% for t in tempos %}<option value="{{ t }}" {% if t==f_tempo %}selected{% endif %}>{{ t }}</option>{% endfor %}
+        </select>
+    </label>
+    {% if f_grupo or f_funcion or f_tempo %}
+        <a href="{{ url_for('inicio', q=busqueda) }}" class="btn btn-chico btn-gris">Quitar filtros</a>
+    {% endif %}
+</form>
+
 {% if total > 0 %}
     <details class="indice">
         <summary class="indice-titulo">📑 Índice de canciones ({{ total }})</summary>

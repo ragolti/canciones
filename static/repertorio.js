@@ -155,6 +155,17 @@ function repCargarLista(canciones) {
     repAbrir();
 }
 
+// Abre la vista móvil deslizable (cada canción a pantalla completa).
+function repMovil() {
+    const lista = repCargar();
+    if (lista.length === 0) {
+        alert("La lista está vacía. Agregá canciones con el botón ➕.");
+        return;
+    }
+    const ids = lista.map(function (c) { return c.id; }).join(",");
+    window.open("/repertorio/movil?ids=" + ids, "_blank");
+}
+
 // Abre la pantalla de control de proyección con las canciones de la lista.
 function repProyectar() {
     const lista = repCargar();

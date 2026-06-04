@@ -4,6 +4,9 @@
 
 {% block contenido %}
 <h1>{% if accion == 'editar' %}Editar canción{% else %}Nueva canción{% endif %}</h1>
+{% if accion == 'nueva' %}
+    <p><a href="{{ url_for('importar') }}" class="btn btn-chico">⬇️ Importar desde una web o un PDF</a></p>
+{% endif %}
 
 <form method="post" class="formulario">
     <label>
@@ -46,8 +49,25 @@
 
     <label>
         Links de YouTube (uno por línea)
-        <textarea name="youtube" rows="3" placeholder="https://www.youtube.com/watch?v=...&#10;https://youtu.be/...">{{ cancion['youtube'] if cancion['youtube'] is defined else '' }}</textarea>
+        <textarea name="youtube" id="campo-youtube" rows="3" placeholder="https://www.youtube.com/watch?v=...&#10;https://youtu.be/...">{{ cancion['youtube'] if cancion['youtube'] is defined else '' }}</textarea>
     </label>
+    <button type="button" class="btn btn-chico" onclick="buscarEnYouTube()" style="align-self:flex-start;">
+        🔎 Buscar en YouTube
+    </button>
+    <script>
+        // Busca en YouTube por el título; si está vacío, por la primera línea de la letra (estribillo).
+        function buscarEnYouTube() {
+            const titulo = (document.querySelector('input[name=titulo]').value || "").trim();
+            let q = titulo;
+            if (!q) {
+                const letra = (document.querySelector('textarea[name=letra]').value || "").trim();
+                q = (letra.split("\n").find(function (l) { return l.trim(); }) || "").trim();
+            }
+            if (!q) { alert("Escribí primero el título o algo de la letra."); return; }
+            window.open("https://www.youtube.com/results?search_query=" +
+                        encodeURIComponent(q + " música alabanza"), "_blank");
+        }
+    </script>
 
     <label>
         Letra (podés escribir acordes arriba de cada línea)

@@ -225,6 +225,84 @@ footer {
     .indice-lista { columns: 1; }
 }
 
+/* Importar canciones */
+.importar-bloque {
+    background: var(--card);
+    border: 1px solid var(--gris-borde);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+}
+.importar-bloque h3 { margin: 0 0 6px; }
+
+/* YouTube: fijar link faltante */
+.yt-fijar { display: inline-flex; gap: 6px; margin-left: 8px; }
+.yt-link-input { padding: 5px 8px; border: 1px solid var(--gris-borde); border-radius: 6px; font-size: 0.82rem; }
+
+/* Barra de filtros del listado */
+.filtros-barra {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--gris-borde);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 0.88rem;
+    color: var(--texto-suave);
+}
+.filtros-barra select {
+    padding: 6px 9px;
+    border: 1px solid var(--gris-borde);
+    border-radius: 6px;
+    margin-left: 4px;
+}
+
+/* Apariciones en eventos (detalle de canción) */
+.apariciones {
+    background: var(--card);
+    border: 1px solid var(--gris-borde);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 0.9rem;
+    color: var(--texto-suave);
+}
+.aparicion-chip {
+    display: inline-block;
+    background: var(--gris-fondo);
+    border-radius: 10px;
+    padding: 2px 9px;
+    margin: 2px;
+    font-size: 0.82rem;
+}
+
+/* Historial: número de lista y búsqueda por número */
+.hist-num {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+}
+.hist-num input {
+    width: 110px;
+    padding: 6px 9px;
+    border: 1px solid var(--gris-borde);
+    border-radius: 6px;
+    margin-left: 6px;
+}
+.hist-num-badge {
+    background: var(--color-principal);
+    color: #fff;
+    border-radius: 8px;
+    padding: 1px 7px;
+    font-size: 0.78rem;
+}
+
 /* Grupos desplegables (acordeón por categoría) */
 .grupo {
     background: var(--card);

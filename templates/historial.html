@@ -3,6 +3,21 @@
 {% block contenido %}
 <h1>📅 Historial de listas</h1>
 
+<form class="hist-num" onsubmit="return irLista(event)">
+    <label>🔢 Ver lista por número:
+        <input type="number" id="num-lista" min="1" placeholder="Ej: 223">
+    </label>
+    <button type="submit" class="btn btn-chico">Ir</button>
+</form>
+<script>
+function irLista(e) {
+    e.preventDefault();
+    const n = document.getElementById("num-lista").value;
+    if (n) window.location = "/lista/" + n;
+    return false;
+}
+</script>
+
 <form class="hist-filtros" method="get" action="{{ url_for('historial') }}">
     <label>Usuario:
         <select name="usuario" onchange="this.form.submit()">
@@ -25,11 +40,12 @@
         {% for l in listas %}
             <div class="hist-item" onclick="verLista({{ l['id'] }})" id="hist-item-{{ l['id'] }}">
                 <div class="hist-item-top">
-                    <span class="hist-nombre">{{ l['nombre'] }}</span>
+                    <span class="hist-nombre"><span class="hist-num-badge">#{{ l['id'] }}</span> {{ l['nombre'] }}</span>
                     {% if l['favorita'] %}<span class="hist-estrella">⭐</span>{% endif %}
                 </div>
                 <div class="hist-meta">
                     👤 {{ l['usuario'] or '—' }} · {{ l['canciones']|length }} canciones
+                    {% if l['creada_en'] %}· 📅 {{ l['creada_en'][:10] }}{% endif %}
                 </div>
             </div>
         {% endfor %}

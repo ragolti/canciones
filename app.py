@@ -13,6 +13,8 @@ Después abrí el navegador en:  http://127.0.0.1:5000
 import os
 import re
 import json
+import html as _html
+import urllib.request
 from functools import wraps
 
 from flask import (
@@ -97,7 +99,19 @@ except Exception as e:
 def inicio():
     """Página principal: canciones agrupadas por categoría, con buscador."""
     busqueda = request.args.get("q", "").strip()
+    f_grupo = request.args.get("grupo", "").strip()
+    f_funcion = request.args.get("funcion", "").strip()
+    f_tempo = request.args.get("tempo", "").strip()
+
     canciones = database.listar_canciones(busqueda)
+    # Filtros por desplegable (estilo/grupo, función, tempo).
+    if f_grupo:
+        canciones = [c for c in canciones if (c["categoria"] or "Sin categoría") == f_grupo]
+    if f_funcion:
+        canciones = [c for c in canciones if (c["funcion"] or "") == f_funcion]
+    if f_tempo:
+        canciones = [c for c in canciones if (c["tempo"] or "") == f_tempo]
+
     grupos = database.agrupar_por_categoria(canciones)
     return render_template(
         "index.html",
@@ -108,6 +122,7 @@ def inicio():
         funciones=database.FUNCIONES,
         estilos=database.CATEGORIAS_SUGERIDAS,
         tempos=database.TEMPOS,
+        f_grupo=f_grupo, f_funcion=f_funcion, f_tempo=f_tempo,
     )
 
 
@@ -140,7 +155,45 @@ def ver_cancion(cancion_id):
         return redirect(url_for("inicio"))
     semitonos = _leer_semitonos()
     datos = _cancion_transpuesta(cancion, semitonos)
-    return render_template("cancion.html", cancion=datos, semitonos=semitonos)
+    apariciones = database.fechas_apariciones(cancion_id)
+    return render_template("cancion.html", cancion=datos, semitonos=semitonos,
+                           apariciones=apariciones)
+
+
+@app.route("/ocultar/<int:cancion_id>", methods=["POST"])
+@login_required
+def ocultar_cancion(cancion_id):
+    """Oculta una canción (no se ve en público). Admin o quien tenga permiso."""
+    if not es_admin():
+        flash("Solo el administrador puede ocultar canciones.")
+        return redirect(url_for("ver_cancion", cancion_id=cancion_id))
+    database.cambiar_estado(cancion_id, "oculta")
+    flash("Canción ocultada (ya no se ve en público).")
+    return redirect(url_for("ver_cancion", cancion_id=cancion_id))
+
+
+@app.route("/mostrar/<int:cancion_id>", methods=["POST"])
+@admin_required
+def mostrar_cancion(cancion_id):
+    """Vuelve a mostrar una canción oculta."""
+    database.cambiar_estado(cancion_id, "aprobada")
+    flash("Canción visible nuevamente.")
+    return redirect(url_for("ver_cancion", cancion_id=cancion_id))
+
+
+@app.route("/lista/<int:lista_id>")
+def ver_lista(lista_id):
+    """Ver una lista guardada por su número (para compartir: 'la lista 223')."""
+    lista = database.obtener_lista(lista_id)
+    if lista is None:
+        flash("No existe una lista con ese número.")
+        return redirect(url_for("historial"))
+    import json as _json
+    try:
+        canciones = _json.loads(lista["canciones_json"] or "[]")
+    except Exception:
+        canciones = []
+    return render_template("ver_lista.html", lista=lista, canciones=canciones)
 
 
 @app.route("/imprimir/<int:cancion_id>")
@@ -408,7 +461,7 @@ def repertorio_youtube():
         links = [l.strip() for l in (c["youtube"] or "").splitlines() if l.strip()]
         vid_ids = [vid for vid in (_id_youtube(l) for l in links) if vid]
         todos_los_ids.extend(vid_ids)
-        items.append({"titulo": c["titulo"], "links": links, "tiene": bool(links)})
+        items.append({"id": c["id"], "titulo": c["titulo"], "links": links, "tiene": bool(links)})
 
     # Playlist anónima de YouTube que reproduce todos los videos en orden.
     playlist_url = ""
@@ -441,6 +494,96 @@ def proyectar():
 def proyeccion():
     """Ventana de proyección (pantalla gigante): muestra el párrafo actual."""
     return render_template("proyeccion.html")
+
+
+@app.route("/repertorio/movil")
+def repertorio_movil():
+    """Vista móvil: cada canción a pantalla completa, se pasa deslizando el dedo."""
+    ids_texto = request.args.get("ids", "")
+    ids = [int(x) for x in ids_texto.split(",") if x.strip().isdigit()]
+    canciones = [database.obtener_cancion(i) for i in ids]
+    canciones = [c for c in canciones if c is not None]
+    return render_template("movil.html", canciones=canciones)
+
+
+def _texto_de_web(url):
+    """Descarga una página y extrae (titulo, texto) en texto plano. Best-effort."""
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        html = resp.read().decode("utf-8", "ignore")
+    titulo = ""
+    m = re.search(r"<title[^>]*>(.*?)</title>", html, re.I | re.S)
+    if m:
+        titulo = re.sub(r"\s+", " ", _html.unescape(m.group(1))).strip()
+    # Saca scripts/estilos, convierte saltos, quita etiquetas.
+    html = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html, flags=re.I | re.S)
+    html = re.sub(r"<br\s*/?>", "\n", html, flags=re.I)
+    html = re.sub(r"</p>", "\n\n", html, flags=re.I)
+    texto = _html.unescape(re.sub(r"<[^>]+>", "", html))
+    texto = re.sub(r"[ \t]+\n", "\n", texto)
+    texto = re.sub(r"\n{3,}", "\n\n", texto).strip()
+    return titulo, texto
+
+
+@app.route("/importar")
+@login_required
+def importar():
+    """Página para importar canciones desde una web o un PDF."""
+    return render_template("importar.html")
+
+
+@app.route("/importar/web", methods=["POST"])
+@login_required
+def importar_web():
+    """Trae el texto de una página y precarga el formulario de nueva canción."""
+    url = request.form.get("url", "").strip()
+    if not url:
+        flash("Pegá la dirección (URL) de la página.")
+        return redirect(url_for("importar"))
+    try:
+        titulo, texto = _texto_de_web(url)
+    except Exception as e:
+        flash(f"No se pudo leer esa página: {e}")
+        return redirect(url_for("importar"))
+    flash("Revisá y ajustá el texto antes de guardar.")
+    return render_template(
+        "form.html", accion="nueva", categorias=database.CATEGORIAS_SUGERIDAS,
+        cancion={"titulo": titulo, "letra": texto},
+    )
+
+
+@app.route("/importar/pdf", methods=["POST"])
+@login_required
+def importar_pdf():
+    """Sube un PDF y crea una canción por página (texto extraído)."""
+    archivo = request.files.get("pdf")
+    if not archivo or not archivo.filename.lower().endswith(".pdf"):
+        flash("Subí un archivo PDF.")
+        return redirect(url_for("importar"))
+    try:
+        from pypdf import PdfReader
+        lector = PdfReader(archivo.stream)
+    except Exception as e:
+        flash(f"No se pudo leer el PDF: {e}")
+        return redirect(url_for("importar"))
+
+    estado = "aprobada" if es_admin() else "pendiente"
+    creadas = 0
+    for pagina in lector.pages:
+        texto = (pagina.extract_text() or "").strip()
+        if not texto:
+            continue
+        lineas = [l for l in texto.splitlines() if l.strip()]
+        titulo = lineas[0].strip() if lineas else "Sin título"
+        letra = "\n".join(lineas[1:]).strip()
+        database.crear_cancion(titulo, "", "", "Importada PDF", letra, "Nuevas", "", estado)
+        creadas += 1
+
+    if estado == "pendiente":
+        flash(f"Se importaron {creadas} canciones (quedaron pendientes de aprobación).")
+    else:
+        flash(f"Se importaron {creadas} canciones.")
+    return redirect(url_for("inicio"))
 
 
 @app.route("/nueva", methods=["GET", "POST"])

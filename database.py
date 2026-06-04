@@ -14,8 +14,18 @@ cambios no se pierden.
 """
 
 import os
+import json
 import sqlite3
+import unicodedata
 from pathlib import Path
+
+
+def sin_acentos(texto):
+    """Devuelve el texto en minúsculas y sin acentos (para buscar igual con o sin tilde)."""
+    if not texto:
+        return ""
+    normal = unicodedata.normalize("NFD", str(texto))
+    return "".join(c for c in normal if unicodedata.category(c) != "Mn").lower()
 
 # ¿Hay base Postgres configurada? (Render/Neon define DATABASE_URL)
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
@@ -250,27 +260,55 @@ def contar_canciones():
 def listar_canciones(busqueda="", solo_aprobadas=True):
     """Devuelve canciones ordenadas por título.
 
-    Si 'solo_aprobadas' es True, muestra únicamente las aprobadas (vista pública).
-    Si se pasa 'busqueda', filtra por título, artista, etiquetas, categoría o letra.
+    Si 'solo_aprobadas' es True, muestra solo las aprobadas (vista pública; las
+    ocultas y pendientes no aparecen).
+    La búsqueda funciona con o sin acentos (insensible a tildes y mayúsculas).
     """
-    like = "ILIKE" if USAR_POSTGRES else "LIKE"
     orden = "LOWER(titulo)" if USAR_POSTGRES else "titulo COLLATE NOCASE"
+    where = "WHERE (estado = 'aprobada' OR estado IS NULL)" if solo_aprobadas else ""
+    filas = _ejecutar(f"SELECT * FROM canciones {where} ORDER BY {orden}", fetch="all") or []
 
-    condiciones = []
-    params = []
-    if solo_aprobadas:
-        condiciones.append("(estado = 'aprobada' OR estado IS NULL)")
     if busqueda:
-        patron = f"%{busqueda}%"
-        condiciones.append(
-            f"(titulo {like} ? OR artista {like} ? OR etiquetas {like} ? "
-            f"OR categoria {like} ? OR letra {like} ?)"
-        )
-        params += [patron, patron, patron, patron, patron]
+        q = sin_acentos(busqueda)
+        def coincide(f):
+            campos = " ".join(str(f[k] or "") for k in
+                              ("titulo", "artista", "etiquetas", "categoria", "letra"))
+            return q in sin_acentos(campos)
+        filas = [f for f in filas if coincide(f)]
 
-    where = ("WHERE " + " AND ".join(condiciones)) if condiciones else ""
-    sql = f"SELECT * FROM canciones {where} ORDER BY {orden}"
-    return _ejecutar(sql, tuple(params), fetch="all")
+    return filas
+
+
+def contar_apariciones(cancion_id):
+    """Cuántas listas guardadas (eventos) incluyen esta canción."""
+    filas = _ejecutar("SELECT canciones_json FROM listas", fetch="all") or []
+    n = 0
+    for f in filas:
+        try:
+            for c in json.loads(f["canciones_json"] or "[]"):
+                if int(c.get("id", -1)) == cancion_id:
+                    n += 1
+                    break
+        except Exception:
+            pass
+    return n
+
+
+def fechas_apariciones(cancion_id):
+    """Lista de (nombre, creada_en) de los eventos donde apareció la canción."""
+    filas = _ejecutar(
+        "SELECT nombre, creada_en, canciones_json FROM listas ORDER BY creada_en DESC",
+        fetch="all",
+    ) or []
+    resultado = []
+    for f in filas:
+        try:
+            if any(int(c.get("id", -1)) == cancion_id
+                   for c in json.loads(f["canciones_json"] or "[]")):
+                resultado.append((f["nombre"], f["creada_en"]))
+        except Exception:
+            pass
+    return resultado
 
 
 def listar_pendientes():

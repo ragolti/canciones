@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titulo %}Importar canciones · Adoremos{% endblock %}
+{% block contenido %}
+<h1>⬇️ Importar canciones</h1>
+
+<div class="importar-bloque">
+    <h3>🌐 Desde una página web</h3>
+    <p class="sub">Pegá la dirección de una página con la letra/acordes. Traemos el texto y lo
+    revisás antes de guardar.</p>
+    <form method="post" action="{{ url_for('importar_web') }}" class="formulario" style="max-width:560px;">
+        <input type="url" name="url" placeholder="https://..." required>
+        <button type="submit" class="btn btn-nueva">Traer de la web</button>
+    </form>
+</div>
+
+<div class="importar-bloque">
+    <h3>📄 Desde un PDF</h3>
+    <p class="sub">Subí un PDF (por ejemplo un cancionero). Crea una canción por página con el
+    texto extraído (queda pendiente de aprobación si no sos admin).</p>
+    <form method="post" action="{{ url_for('importar_pdf') }}" enctype="multipart/form-data"
+          class="formulario" style="max-width:560px;">
+        <input type="file" name="pdf" accept="application/pdf" required>
+        <button type="submit" class="btn btn-nueva">Importar PDF</button>
+    </form>
+</div>
+
+<p class="rep-nota">⚠️ La importación automática es aproximada: revisá y acomodá el texto/acordes
+después (cada página web y PDF tiene un formato distinto).</p>
+
+<a href="{{ url_for('inicio') }}" class="btn btn-gris">← Volver</a>
+{% endblock %}

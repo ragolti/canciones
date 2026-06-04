@@ -20,18 +20,59 @@
 
 <ol class="yt-lista">
     {% for item in items %}
-        <li>
+        <li data-id="{{ item.id }}" data-titulo="{{ item.titulo }}">
             <span class="yt-titulo">{{ item.titulo }}</span>
             {% if item.links %}
                 {% for link in item.links %}
                     <a href="{{ link }}" target="_blank" rel="noopener" class="yt-link">▶ Video {{ loop.index }}</a>
                 {% endfor %}
             {% else %}
-                <span class="yt-sin">sin link de YouTube</span>
+                <span class="yt-sin">sin link</span>
+                <button type="button" class="btn btn-chico yt-buscar">🔎 Buscar</button>
+                {% if usuario_actual %}
+                    <span class="yt-fijar">
+                        <input type="text" class="yt-link-input" placeholder="Pegá el link encontrado">
+                        <button type="button" class="btn btn-chico btn-nueva yt-guardar">📌 Fijar al general</button>
+                    </span>
+                {% endif %}
             {% endif %}
         </li>
     {% endfor %}
 </ol>
+
+<script>
+// Buscar en YouTube el tema que no tiene link.
+document.addEventListener("click", function (e) {
+    const bb = e.target.closest(".yt-buscar");
+    if (bb) {
+        const li = bb.closest("li");
+        window.open("https://www.youtube.com/results?search_query=" +
+                    encodeURIComponent(li.dataset.titulo + " música alabanza"), "_blank");
+        return;
+    }
+    // Fijar (guardar) el link encontrado al listado general.
+    const gb = e.target.closest(".yt-guardar");
+    if (gb) {
+        const li = gb.closest("li");
+        const inp = li.querySelector(".yt-link-input");
+        const link = (inp.value || "").trim();
+        if (!link) { alert("Pegá primero el link."); return; }
+        fetch("/youtube/" + li.dataset.id, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ link: link }),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d.ok) {
+                li.querySelector(".yt-sin").textContent = "✅ link guardado";
+                li.querySelector(".yt-buscar").remove();
+                li.querySelector(".yt-fijar").remove();
+            } else { alert(d.error || "No se pudo guardar."); }
+        });
+    }
+});
+</script>
 
 <a href="{{ url_for('inicio') }}" class="btn btn-gris">← Volver</a>
 

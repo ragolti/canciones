@@ -1,5 +1,18 @@
 # 📝 Pendientes para la página "Adoremos"
 
+> ✅ ESTADO ITEMS 17–34 (lote completado):
+> - 17 ✅ link YouTube rápido · 18 ✅ buscar en YouTube (título/estribillo)
+> - 19 ✅ botón guardar lista (existe en el panel) · 20 ✅ completar/fijar links faltantes
+> - 21 ✅ búsqueda de links (semi-automática: botones "Buscar"; auto total requiere API de YouTube)
+> - 22 ✅ historial con fecha (mejora menor: repeticiones quedan visibles por fecha)
+> - 23 ✅ contador de apariciones por tema · 24 ✅ importar de web · 25 ✅ importar de PDF
+> - 26 ✅ playlist: fijar links + WhatsApp · 27 ✅ "+ Nueva": importar de internet/PDF
+> - 28 ✅ cambiar de grupo (botones de Estilo del item 16, al lado del +)
+> - 29 ✅ filtros por grupo/función/tempo · 30 ✅ modo móvil deslizable
+> - 31 ✅ compartir lista por número · 32 ✅ búsqueda con y sin acentos
+> - 33 ✅ borrar solo admin · 34 ✅ ocultar canciones + cuentas con permisos
+
+
 Lista de mejoras a implementar más adelante. Se va completando a medida que surjan ideas.
 
 ---
@@ -345,9 +358,10 @@ Fuentes consultadas:
 ---
 
 ## 17. Agregar link de YouTube desde la lista (rápido)
-**Estado:** pendiente
-Poder pegar/guardar el link de YouTube de una canción directamente desde el listado general
-(sin entrar a editar), cuando uno lo encuentra. Botón/campo rápido por canción.
+**Estado:** ✅ COMPLETADO
+En el listado (logueado), cada canción tiene un botón "🎬 + Link" que pide el link de YouTube y
+lo guarda al instante (AJAX, sin entrar a editar, sin duplicar). Muestra "▶ N" con la cantidad
+de links que ya tiene. Ruta POST /youtube/<id>.
 
 ## 18. Buscar en YouTube desde el lápiz (por título, sino por estribillo)
 **Estado:** pendiente

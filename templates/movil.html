@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Modo móvil · Adoremos</title>
+    <style>
+        html, body { margin: 0; height: 100%; background: #111; color: #f5f5f5;
+            font-family: "Consolas", "Courier New", monospace; overflow: hidden; }
+
+        /* Carrusel horizontal: cada canción ocupa toda la pantalla, se desliza el dedo */
+        .carrusel {
+            display: flex;
+            height: 100vh;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+        .pagina {
+            min-width: 100vw;
+            height: 100vh;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            padding: 8px 14px 14px;
+            box-sizing: border-box;
+        }
+        .pag-cab {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+        .pag-titulo { font-weight: 700; font-size: 1.2rem; color: #b9a6ff; }
+        .pag-num { font-size: 0.85rem; color: #888; }
+        .pag-meta { font-size: 0.8rem; color: #999; margin-bottom: 6px; }
+        .pag-letra {
+            flex: 1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 1rem;
+            line-height: 1.5;
+            columns: 2;
+            column-gap: 24px;
+        }
+        .aviso-girar {
+            position: fixed; top: 0; left: 0; right: 0;
+            background: #6d4aff; color: #fff; text-align: center;
+            padding: 6px; font-family: sans-serif; font-size: 0.85rem; z-index: 10;
+        }
+        @media (orientation: landscape) { .aviso-girar { display: none; } }
+        .salir { position: fixed; bottom: 10px; right: 12px; z-index: 10;
+            background: rgba(255,255,255,0.15); color: #fff; border: 1px solid #555;
+            border-radius: 8px; padding: 6px 12px; text-decoration: none; font-family: sans-serif; }
+    </style>
+</head>
+<body>
+    <div class="aviso-girar">📱 Girá el teléfono en horizontal · deslizá ← → para cambiar de canción</div>
+
+    <div class="carrusel">
+        {% for c in canciones %}
+            <section class="pagina">
+                <div class="pag-cab">
+                    <span class="pag-titulo">{{ c['titulo'] }}</span>
+                    <span class="pag-num">{{ loop.index }} / {{ canciones|length }}</span>
+                </div>
+                <div class="pag-meta">
+                    {% if c['tono'] %}Tono: {{ c['tono'] }}{% endif %}
+                    {% if c['artista'] %} · {{ c['artista'] }}{% endif %}
+                </div>
+                <div class="pag-letra">{{ c['letra'] }}</div>
+            </section>
+        {% endfor %}
+        {% if not canciones %}
+            <section class="pagina"><div class="pag-titulo">La lista está vacía</div></section>
+        {% endif %}
+    </div>
+
+    <a href="/" class="salir">✕ Salir</a>
+</body>
+</html>

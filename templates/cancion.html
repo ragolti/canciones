@@ -11,11 +11,22 @@
             <a href="{{ url_for('imprimir_cancion', cancion_id=cancion['id'], t=semitonos) }}" class="btn" target="_blank">🖨️ Imprimir / PDF</a>
             <a href="{{ url_for('editar_acordes', cancion_id=cancion['id']) }}" class="btn">🎸 Editar acordes</a>
             <a href="{{ url_for('editar_cancion', cancion_id=cancion['id']) }}" class="btn">✏️ Editar</a>
-            <form method="post" action="{{ url_for('borrar', cancion_id=cancion['id']) }}"
-                  onsubmit="return confirm('¿Seguro que querés borrar esta canción?');"
-                  style="display:inline;">
-                <button type="submit" class="btn btn-rojo">🗑️ Borrar</button>
-            </form>
+            {% if usuario_actual and usuario_actual.rol == 'admin' %}
+                {% if cancion['estado'] == 'oculta' %}
+                    <form method="post" action="{{ url_for('mostrar_cancion', cancion_id=cancion['id']) }}" style="display:inline;">
+                        <button type="submit" class="btn">👁️ Mostrar</button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{{ url_for('ocultar_cancion', cancion_id=cancion['id']) }}" style="display:inline;">
+                        <button type="submit" class="btn">🙈 Ocultar</button>
+                    </form>
+                {% endif %}
+                <form method="post" action="{{ url_for('borrar', cancion_id=cancion['id']) }}"
+                      onsubmit="return confirm('¿Seguro que querés borrar esta canción?');"
+                      style="display:inline;">
+                    <button type="submit" class="btn btn-rojo">🗑️ Borrar</button>
+                </form>
+            {% endif %}
         </div>
     </div>
 
@@ -43,6 +54,15 @@
             <strong>🎬 Escuchar en YouTube:</strong>
             {% for link in links_youtube %}
                 <a href="{{ link }}" target="_blank" rel="noopener" class="btn btn-yt">▶ Video {{ loop.index }}</a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if apariciones %}
+        <div class="apariciones">
+            🎤 Apareció en <strong>{{ apariciones|length }}</strong> evento(s):
+            {% for nombre, fecha in apariciones %}
+                <span class="aparicion-chip">{{ nombre }}</span>
             {% endfor %}
         </div>
     {% endif %}
