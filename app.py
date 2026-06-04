@@ -260,6 +260,18 @@ def clasificar(cancion_id):
     return {"ok": bool(ok)}
 
 
+@app.route("/youtube/<int:cancion_id>", methods=["POST"])
+@login_required
+def youtube_rapido(cancion_id):
+    """Agrega un link de YouTube a una canción desde el listado (rápido)."""
+    datos = request.get_json(silent=True) or {}
+    link = (datos.get("link") or "").strip()
+    if not link:
+        return {"ok": False, "error": "El link está vacío."}, 400
+    total = database.agregar_youtube(cancion_id, link)
+    return {"ok": True, "total": total}
+
+
 @app.route("/listas/guardar", methods=["POST"])
 @login_required
 def guardar_lista():

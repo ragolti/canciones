@@ -306,7 +306,17 @@ marcar/desmarcar como favorita, "📋 Usar esta lista" (la carga en el repertori
 ---
 
 ## 16. Clasificación de canciones en varias dimensiones (botones por tema)
-**Estado:** pendiente (a definir alcance)
+**Estado:** ✅ COMPLETADO
+
+Implementado: en la lista, debajo de cada canción (solo para usuarios logueados) hay 3 grupos de
+botones rápidos que se guardan al instante (AJAX):
+- FUNCIÓN: Alabanza / Adoración (campo `funcion`)
+- ESTILO: Coros / Clásicas / Contemporáneas / Nuevas (campo `categoria`, agrupa la lista)
+- TEMPO: Rápida / Media / Lenta (campo `tempo`)
+Volver a tocar un botón activo lo deselecciona. Campo validado con lista blanca (seguro).
+La TEMÁTICA se maneja con el campo 'etiquetas' (libre) en el formulario de edición.
+Migración: los estilos viejos se unificaron (Nuevas y últimas→Nuevas, etc.).
+PENDIENTE OPCIONAL futuro: filtros arriba del listado por función/tempo.
 
 Pedido del usuario: al lado de cada canción, botones para clasificar:
 - **Función:** "Alabanza" vs "Adoración" (un recuadro).
@@ -331,6 +341,91 @@ Fuentes consultadas:
 - davidsantistevan.com (cómo armar un setlist que fluye)
 - praisecharts.com/explore/themes (temáticas)
 - compellingtruth.org / lacorriente.com (alabanza vs adoración)
+
+---
+
+## 17. Agregar link de YouTube desde la lista (rápido)
+**Estado:** pendiente
+Poder pegar/guardar el link de YouTube de una canción directamente desde el listado general
+(sin entrar a editar), cuando uno lo encuentra. Botón/campo rápido por canción.
+
+## 18. Buscar en YouTube desde el lápiz (por título, sino por estribillo)
+**Estado:** pendiente
+Al hacer clic en editar (lápiz), un botón que abra/busque en YouTube usando el TÍTULO del tema;
+y si no, por una línea de la LETRA del estribillo. Para encontrar el video fácil y pegarlo.
+
+## 19. Botón "Guardar la lista" más visible
+**Estado:** parcial (ya existe "💾 Guardar en historial" en el panel; revisar que sea claro/accesible).
+
+## 20. Generar playlist y completar links faltantes en el listado general
+**Estado:** pendiente
+Al generar la playlist de YouTube, si a una canción le falta el link y se encuentra uno, que se
+inserte/guarde en el listado general (queda con su link permanente para la próxima).
+
+## 21. Búsqueda automática de links de YouTube
+**Estado:** pendiente (a evaluar)
+Que el sistema busque solo los links de YouTube de las canciones (automático). NOTA: requiere
+API de YouTube (clave) o scraping; evaluar viabilidad/costo/límites.
+
+## 22. Listado de listas guardadas con última fecha de evento (y repeticiones)
+**Estado:** pendiente (mejora del item 15)
+En el historial, mostrar al lado de cada lista su última fecha de evento; y si una misma lista se
+usó en más de un evento, mostrar esas fechas/repeticiones.
+
+## 23. Contador de cuántas veces salió cada tema en los eventos
+**Estado:** pendiente
+Ver, en cualquier canción, cuántas veces apareció en las distintas listas/eventos guardados.
+
+## 24. Importar temas con acordes desde páginas web
+**Estado:** pendiente (a evaluar cómo)
+Pegar una URL de una página de acordes y que traiga título + letra + acordes. NOTA: cada sitio
+tiene formato distinto; evaluar enfoque (pegar texto vs. importador por sitio).
+
+## 25. Importar desde PDFs (con botón)
+**Estado:** pendiente (a evaluar cómo)
+Botón para subir un PDF y extraer las canciones (como hicimos con "Lista Nueva", pero desde la
+web). NOTA: requiere lectura de PDF en el servidor y separar canciones.
+
+## 26. Playlist YouTube: fijar links al general + compartir por WhatsApp
+**Estado:** pendiente (mejora de items 9 y 20)
+En la página de Playlist de YouTube: al encontrar un link, poder "fijarlo" para que quede en el
+listado general. Y compartir la playlist al grupo por WhatsApp desde ahí (ya existe parcialmente).
+
+## 27. "+ Nueva canción": buscar en Internet y cargar desde ahí
+**Estado:** pendiente (a evaluar)
+Al crear una canción, poder buscarla en páginas de internet (letra/acordes) y cargarla desde
+el resultado. Relacionado con items 24 y 25.
+
+## 28. Cambiar de grupo desde el botón + del listado
+**Estado:** parcial (item 16 ya permite cambiar Estilo con botones rápidos al estar logueado;
+acá se pide además un acceso desde el menú del símbolo +). Revisar/ajustar.
+
+## 29. Desplegable para elegir/filtrar qué listado (grupo) ver
+**Estado:** pendiente
+Un desplegable arriba (donde dice el grupo, ej. "Nuevas") para elegir y filtrar qué grupo/listado
+mostrar. También filtros por función/tempo.
+
+## 30. Modo PDF/proyección móvil horizontal, pantalla completa, deslizable
+**Estado:** pendiente
+Al tocar "PDF / Imprimir" (en celular): vista horizontal (girar el teléfono), cada canción ocupa
+la pantalla completa, se pasa de canción deslizando el dedo (siguiente/anterior), con el TÍTULO
+arriba y el NÚMERO de página en una esquina (para que el cantante se ubique).
+
+## 31. Compartir lista por número (ej. "lista 223")
+**Estado:** pendiente
+Cada lista guardada tiene un número; para compartir, basta decir el número y los demás (músicos
+y proyección) la buscan en el programa por ese número.
+
+## 32. Búsqueda con y sin acentos
+**Estado:** pendiente
+Que el buscador encuentre igual escribiendo con o sin acentos (ej. "adoracion" = "adoración").
+
+## 33. Borrar solo con credenciales de Administrador
+**Estado:** ✅ YA HECHO (item 12: solo el admin puede borrar). Confirmar que cumple.
+
+## 34. Cuentas individuales con permisos (borrar/modificar/ocultar)
+**Estado:** parcial (item 12 ya da cuentas y roles). Falta: poder "OCULTAR" canciones (además de
+borrar/modificar) y afinar permisos por usuario.
 
 ---
 

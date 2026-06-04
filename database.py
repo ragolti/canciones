@@ -306,6 +306,19 @@ def clasificar(cancion_id, campo, valor):
     return True
 
 
+def agregar_youtube(cancion_id, link):
+    """Agrega un link de YouTube a una canción (sin duplicar). Devuelve el total."""
+    c = obtener_cancion(cancion_id)
+    if not c:
+        return 0
+    actuales = [l.strip() for l in (c["youtube"] or "").splitlines() if l.strip()]
+    if link and link not in actuales:
+        actuales.append(link)
+    nuevo = "\n".join(actuales)
+    _ejecutar("UPDATE canciones SET youtube = ? WHERE id = ?", (nuevo, cancion_id))
+    return len(actuales)
+
+
 # ---------- Usuarios ----------
 
 def contar_usuarios():

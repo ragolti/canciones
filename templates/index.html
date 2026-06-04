@@ -89,6 +89,12 @@
                                     <button type="button" class="clasif-btn{% if cancion['tempo'] == t %} activo{% endif %}" data-campo="tempo" data-valor="{{ t }}">{{ t }}</button>
                                 {% endfor %}
                             </div>
+                            <div class="clasif-grupo">
+                                <span class="clasif-label">YouTube</span>
+                                {% set yt = (cancion['youtube'] or '').splitlines() | map('trim') | select | list %}
+                                <button type="button" class="clasif-btn yt-add" data-id="{{ cancion['id'] }}">🎬 + Link</button>
+                                <span class="yt-count" id="ytc-{{ cancion['id'] }}">{% if yt %}▶ {{ yt|length }}{% endif %}</span>
+                            </div>
                         </div>
                         {% endif %}
                     </li>
@@ -125,10 +131,33 @@
         });
     }
 
+    // Botón "+ Link" de YouTube (agregar link rápido desde la lista).
+    document.addEventListener("click", function (e) {
+        const yb = e.target.closest(".yt-add");
+        if (!yb) return;
+        const id = yb.dataset.id;
+        const link = prompt("Pegá el link de YouTube de esta canción:", "");
+        if (!link) return;
+        fetch("/youtube/" + id, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ link: link.trim() }),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d.ok) {
+                const c = document.getElementById("ytc-" + id);
+                if (c) c.textContent = "▶ " + d.total;
+            } else {
+                alert(d.error || "No se pudo agregar el link.");
+            }
+        });
+    });
+
     // Botones rápidos de clasificación (función / estilo / tempo).
     document.addEventListener("click", function (e) {
         const b = e.target.closest(".clasif-btn");
-        if (!b) return;
+        if (!b || !b.dataset.campo) return;   // ignora el botón "+ Link" de YouTube
         const cont = b.closest(".clasif");
         const id = cont.dataset.id;
         const yaActivo = b.classList.contains("activo");

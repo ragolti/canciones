@@ -340,6 +340,9 @@ footer {
     border-color: var(--color-principal);
     font-weight: 600;
 }
+.clasif-btn.yt-add { border-color: #cc0000; color: #ff5252; }
+.clasif-btn.yt-add:hover { background: #cc0000; color: #fff; }
+.yt-count { font-size: 0.78rem; color: #ff5252; font-weight: 600; }
 
 .etiquetas { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
 .etiqueta {
