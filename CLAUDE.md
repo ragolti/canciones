@@ -46,3 +46,8 @@ letra, creada_en, modificada_en`
 - Listas / repertorios ordenados de canciones.
 - Exportar varias canciones juntas a un solo PDF (cancionero).
 - Importar/exportar canciones a archivos de texto.
+- **Importar canciones desde un listado de WhatsApp**: el usuario pega el texto
+  copiado de un chat/grupo donde publicaron muchas canciones (títulos, a veces
+  con autor o con la letra) y la app las agrega en lote, evitando duplicados.
+  Probablemente convenga una pantalla "pegar texto" que detecte títulos y, si
+  hay letra, la separe; dejar las nuevas como "pendientes de aprobación".
