@@ -439,6 +439,48 @@ def importar_lote():
     }
 
 
+@app.route("/completar", methods=["POST"])
+def completar():
+    """Actualiza letra/tono/autor/año de una canción existente. Protegido con token.
+
+    Body JSON: {"titulo" o "id", "letra", "tono", "artista", "anio"}.
+    Se usa para reconstruir las letras con acordes traídas de la web.
+    """
+    token = os.environ.get("ENRICH_TOKEN", "")
+    if not token or request.headers.get("X-Token", "") != token:
+        return {"ok": False, "error": "Token inválido"}, 403
+    datos = request.get_json(silent=True) or {}
+    cid = datos.get("id")
+    if not cid and datos.get("titulo"):
+        objetivo = database.sin_acentos(datos["titulo"])
+        for c in database.listar_canciones(solo_aprobadas=False):
+            if database.sin_acentos(c["titulo"]) == objetivo:
+                cid = c["id"]
+                break
+    if not cid:
+        return {"ok": False, "error": "Canción no encontrada"}, 404
+    c = database.obtener_cancion(int(cid))
+    if not c:
+        return {"ok": False, "error": "Canción no encontrada"}, 404
+
+    def elegir(nuevo, viejo):
+        return nuevo if (nuevo is not None and str(nuevo).strip() != "") else viejo
+
+    anio_actual = c["anio"] if "anio" in c.keys() else ""
+    database.actualizar_cancion(
+        int(cid),
+        c["titulo"],
+        elegir(datos.get("artista"), c["artista"]),
+        elegir(datos.get("tono"), c["tono"]),
+        c["etiquetas"],
+        elegir(datos.get("letra"), c["letra"]),
+        c["categoria"] if "categoria" in c.keys() else "",
+        c["youtube"] if "youtube" in c.keys() else "",
+        anio=elegir(datos.get("anio"), anio_actual),
+    )
+    return {"ok": True, "id": int(cid), "titulo": c["titulo"]}
+
+
 @app.route("/conocidas/seed", methods=["POST"])
 def conocidas_seed():
     """Marca todas las canciones como conocidas para un usuario dado. Protegido con token.
