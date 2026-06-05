@@ -31,7 +31,8 @@
     </div>
 
     <div class="meta">
-        {% if cancion['artista'] %}<span><strong>Artista:</strong> {{ cancion['artista'] }}</span>{% endif %}
+        {% if cancion['artista'] %}<span><strong>Autor:</strong> {{ cancion['artista'] }}</span>{% endif %}
+        {% if cancion['anio'] is defined and cancion['anio'] %}<span><strong>Año:</strong> {{ cancion['anio'] }}</span>{% endif %}
         {% if cancion['tono'] %}<span><strong>Tono:</strong> {{ cancion['tono'] }}</span>{% endif %}
         {% if cancion['etiquetas'] %}<span><strong>Etiquetas:</strong> {{ cancion['etiquetas'] }}</span>{% endif %}
     </div>

@@ -140,12 +140,14 @@ def inicializar():
         _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS estado TEXT DEFAULT 'aprobada'")
         _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS funcion TEXT DEFAULT ''")
         _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS tempo TEXT DEFAULT ''")
+        _ejecutar("ALTER TABLE canciones ADD COLUMN IF NOT EXISTS anio TEXT DEFAULT ''")
     else:
         con = conectar()
         try:
             columnas = [f["name"] for f in con.execute("PRAGMA table_info(canciones)")]
             for col, defecto in [("categoria", "''"), ("youtube", "''"),
-                                 ("estado", "'aprobada'"), ("funcion", "''"), ("tempo", "''")]:
+                                 ("estado", "'aprobada'"), ("funcion", "''"),
+                                 ("tempo", "''"), ("anio", "''")]:
                 if col not in columnas:
                     con.execute(f"ALTER TABLE canciones ADD COLUMN {col} TEXT DEFAULT {defecto}")
             con.commit()
@@ -344,6 +346,27 @@ def clasificar(cancion_id, campo, valor):
     return True
 
 
+def enriquecer(cancion_id, artista=None, anio=None, links=None):
+    """Completa datos de una canción (artista/autor, año) y agrega links de YouTube."""
+    sets = []
+    params = []
+    if artista is not None and artista != "":
+        sets.append("artista = ?")
+        params.append(artista)
+    if anio is not None and anio != "":
+        sets.append("anio = ?")
+        params.append(anio)
+    if sets:
+        params.append(cancion_id)
+        _ejecutar(f"UPDATE canciones SET {', '.join(sets)} WHERE id = ?", tuple(params))
+    total_links = None
+    if links:
+        for l in links:
+            if l:
+                total_links = agregar_youtube(cancion_id, l)
+    return total_links
+
+
 def agregar_youtube(cancion_id, link):
     """Agrega un link de YouTube a una canción (sin duplicar). Devuelve el total."""
     c = obtener_cancion(cancion_id)
@@ -511,14 +534,17 @@ def crear_cancion(titulo, artista, tono, etiquetas, letra, categoria="", youtube
 
 
 def actualizar_cancion(cancion_id, titulo, artista, tono, etiquetas, letra,
-                       categoria="", youtube="", estado=None):
-    """Modifica una canción existente. Si 'estado' es None, no lo cambia."""
+                       categoria="", youtube="", estado=None, anio=None):
+    """Modifica una canción existente. Si 'estado'/'anio' son None, no los cambia."""
     sets = ["titulo = ?", "artista = ?", "tono = ?", "etiquetas = ?", "letra = ?",
             "categoria = ?", "youtube = ?", "modificada_en = CURRENT_TIMESTAMP"]
     params = [titulo, artista, tono, etiquetas, letra, categoria, youtube]
     if estado is not None:
         sets.append("estado = ?")
         params.append(estado)
+    if anio is not None:
+        sets.append("anio = ?")
+        params.append(anio)
     params.append(cancion_id)
 
     sql = f"UPDATE canciones SET {', '.join(sets)} WHERE id = ?"

@@ -300,6 +300,29 @@ def rechazar(cancion_id):
     return redirect(url_for("revisar"))
 
 
+@app.route("/enriquecer", methods=["POST"])
+def enriquecer():
+    """Completa datos de una canción (autor, año, links). Protegido con token.
+
+    Se usa para la carga automática de datos. Requiere la variable de entorno
+    ENRICH_TOKEN y que coincida con el header 'X-Token'.
+    """
+    token = os.environ.get("ENRICH_TOKEN", "")
+    if not token or request.headers.get("X-Token", "") != token:
+        return {"ok": False, "error": "Token inválido"}, 403
+    datos = request.get_json(silent=True) or {}
+    cid = datos.get("id")
+    if not cid:
+        return {"ok": False, "error": "Falta id"}, 400
+    database.enriquecer(
+        int(cid),
+        artista=datos.get("artista"),
+        anio=datos.get("anio"),
+        links=datos.get("links") or [],
+    )
+    return {"ok": True}
+
+
 @app.route("/clasificar/<int:cancion_id>", methods=["POST"])
 @login_required
 def clasificar(cancion_id):
@@ -665,6 +688,7 @@ def editar_cancion(cancion_id):
             request.form.get("categoria", "").strip(),
             request.form.get("youtube", "").strip(),
             estado,
+            request.form.get("anio", "").strip(),
         )
         if estado == "pendiente":
             flash("Tu edición quedó pendiente de aprobación por el administrador.")
