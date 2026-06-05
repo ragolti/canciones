@@ -377,6 +377,68 @@ def quitar_todas_conocidas_ruta():
     return redirect(url_for("inicio"))
 
 
+@app.route("/importar/lote", methods=["POST"])
+def importar_lote():
+    """Crea muchas canciones y listas de una vez. Protegido con token.
+
+    Body JSON:
+      {
+        "canciones": [{"titulo","artista","tono","letra","categoria","etiquetas","youtube"}],
+        "listas":    [{"nombre","fecha","usuario","titulos":[...]}]
+      }
+    Las canciones se insertan sin duplicar (por título). Cada lista guarda sus
+    canciones mapeando el título a la canción existente (si la encuentra).
+    """
+    token = os.environ.get("ENRICH_TOKEN", "")
+    if not token or request.headers.get("X-Token", "") != token:
+        return {"ok": False, "error": "Token inválido"}, 403
+    datos = request.get_json(silent=True) or {}
+    canciones = datos.get("canciones") or []
+    listas = datos.get("listas") or []
+
+    # 1) Crear canciones (sin duplicar por título).
+    filas = [
+        (
+            c.get("titulo", "").strip(),
+            c.get("artista", "") or "",
+            c.get("tono", "") or "",
+            c.get("etiquetas", "") or "",
+            c.get("letra", "") or "",
+            c.get("categoria", "Nuevas") or "Nuevas",
+            c.get("youtube", "") or "",
+        )
+        for c in canciones if c.get("titulo", "").strip()
+    ]
+    if filas:
+        database.crear_varias(filas)
+
+    # 2) Recrear listas (mapeando títulos a las canciones ya cargadas).
+    todas = database.listar_canciones(solo_aprobadas=False)
+    por_titulo = {database.sin_acentos(c["titulo"]): c for c in todas}
+    creadas = []
+    for L in listas:
+        items = []
+        for tt in L.get("titulos", []):
+            row = por_titulo.get(database.sin_acentos(tt))
+            items.append({
+                "id": row["id"] if row else None,
+                "titulo": row["titulo"] if row else tt,
+                "tono": (row["tono"] if row else "") or "",
+            })
+        if not items:
+            continue
+        nombre = (L.get("nombre") or "").strip() or f"Lista {L.get('fecha', '')}".strip()
+        usuario = (L.get("usuario") or "Ríos de (WhatsApp)").strip()
+        database.crear_lista(nombre, usuario, None, json.dumps(items, ensure_ascii=False))
+        creadas.append(nombre)
+
+    return {
+        "ok": True,
+        "canciones_total": database.contar_canciones(),
+        "listas_creadas": creadas,
+    }
+
+
 @app.route("/conocidas/seed", methods=["POST"])
 def conocidas_seed():
     """Marca todas las canciones como conocidas para un usuario dado. Protegido con token.
