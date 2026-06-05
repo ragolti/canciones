@@ -439,6 +439,44 @@ def importar_lote():
     }
 
 
+@app.route("/admin/listar", methods=["POST"])
+def admin_listar():
+    """Devuelve todas las canciones (id, título, autor, largo de letra). Token."""
+    token = os.environ.get("ENRICH_TOKEN", "")
+    if not token or request.headers.get("X-Token", "") != token:
+        return {"ok": False, "error": "Token inválido"}, 403
+    filas = database.listar_canciones(solo_aprobadas=False)
+    return {
+        "ok": True,
+        "canciones": [
+            {
+                "id": c["id"],
+                "titulo": c["titulo"],
+                "artista": c["artista"] or "",
+                "letra_len": len(c["letra"] or ""),
+            }
+            for c in filas
+        ],
+    }
+
+
+@app.route("/admin/borrar", methods=["POST"])
+def admin_borrar():
+    """Borra canciones por id (lista). Token. Usado para quitar duplicados."""
+    token = os.environ.get("ENRICH_TOKEN", "")
+    if not token or request.headers.get("X-Token", "") != token:
+        return {"ok": False, "error": "Token inválido"}, 403
+    ids = (request.get_json(silent=True) or {}).get("ids") or []
+    borradas = []
+    for i in ids:
+        try:
+            database.borrar_cancion(int(i))
+            borradas.append(int(i))
+        except Exception:
+            pass
+    return {"ok": True, "borradas": borradas, "total": database.contar_canciones()}
+
+
 @app.route("/completar", methods=["POST"])
 def completar():
     """Actualiza letra/tono/autor/año de una canción existente. Protegido con token.
