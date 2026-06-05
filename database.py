@@ -211,6 +211,30 @@ def inicializar():
         """
     _ejecutar(crear_listas)
 
+    # Tabla de "canciones conocidas" por usuario.
+    # Cada fila significa: "el usuario X ya tocó / conoce la canción Y".
+    # Así cada usuario puede filtrar y ver solo las que conoce, aunque la base
+    # tenga miles de canciones.
+    if USAR_POSTGRES:
+        crear_conocidas = """
+            CREATE TABLE IF NOT EXISTS conocidas (
+                usuario_id INTEGER NOT NULL,
+                cancion_id INTEGER NOT NULL,
+                creada_en  TEXT DEFAULT (CURRENT_TIMESTAMP::text),
+                PRIMARY KEY (usuario_id, cancion_id)
+            )
+        """
+    else:
+        crear_conocidas = """
+            CREATE TABLE IF NOT EXISTS conocidas (
+                usuario_id INTEGER NOT NULL,
+                cancion_id INTEGER NOT NULL,
+                creada_en  TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (usuario_id, cancion_id)
+            )
+        """
+    _ejecutar(crear_conocidas)
+
     # Quita títulos duplicados (por si una carga anterior quedó a medias)
     # y crea un índice único por título para que no se repitan nunca más.
     if USAR_POSTGRES:
@@ -402,6 +426,99 @@ def obtener_usuario(usuario):
     )
 
 
+def listar_usuarios():
+    """Devuelve todos los usuarios (id, usuario, rol). Para administración."""
+    return _ejecutar(
+        "SELECT id, usuario, rol FROM usuarios ORDER BY usuario", fetch="all"
+    ) or []
+
+
+# ---------- Canciones "conocidas" (marcadas por cada usuario) ----------
+
+def es_conocida(usuario_id, cancion_id):
+    """¿El usuario marcó esta canción como conocida?"""
+    fila = _ejecutar(
+        "SELECT 1 AS x FROM conocidas WHERE usuario_id = ? AND cancion_id = ?",
+        (usuario_id, cancion_id), fetch="one",
+    )
+    return bool(fila)
+
+
+def marcar_conocida(usuario_id, cancion_id):
+    """Marca una canción como conocida por el usuario (sin duplicar)."""
+    if USAR_POSTGRES:
+        _ejecutar(
+            "INSERT INTO conocidas (usuario_id, cancion_id) VALUES (?, ?) "
+            "ON CONFLICT (usuario_id, cancion_id) DO NOTHING",
+            (usuario_id, cancion_id),
+        )
+    else:
+        _ejecutar(
+            "INSERT OR IGNORE INTO conocidas (usuario_id, cancion_id) VALUES (?, ?)",
+            (usuario_id, cancion_id),
+        )
+
+
+def desmarcar_conocida(usuario_id, cancion_id):
+    """Quita la marca de conocida."""
+    _ejecutar(
+        "DELETE FROM conocidas WHERE usuario_id = ? AND cancion_id = ?",
+        (usuario_id, cancion_id),
+    )
+
+
+def alternar_conocida(usuario_id, cancion_id):
+    """Marca o desmarca según el estado actual. Devuelve True si quedó conocida."""
+    if es_conocida(usuario_id, cancion_id):
+        desmarcar_conocida(usuario_id, cancion_id)
+        return False
+    marcar_conocida(usuario_id, cancion_id)
+    return True
+
+
+def ids_conocidas(usuario_id):
+    """Conjunto con los ids de las canciones que el usuario marcó como conocidas."""
+    filas = _ejecutar(
+        "SELECT cancion_id FROM conocidas WHERE usuario_id = ?",
+        (usuario_id,), fetch="all",
+    ) or []
+    return {f["cancion_id"] for f in filas}
+
+
+def contar_conocidas(usuario_id):
+    """Cuántas canciones tiene marcadas como conocidas el usuario."""
+    fila = _ejecutar(
+        "SELECT COUNT(*) AS n FROM conocidas WHERE usuario_id = ?",
+        (usuario_id,), fetch="one",
+    )
+    return fila["n"] if fila else 0
+
+
+def marcar_todas_conocidas(usuario_id, ids):
+    """Marca muchas canciones como conocidas para el usuario, en una sola conexión."""
+    ids = [int(i) for i in ids]
+    if not ids:
+        return 0
+    con = conectar()
+    try:
+        cur = con.cursor()
+        if USAR_POSTGRES:
+            sql = ("INSERT INTO conocidas (usuario_id, cancion_id) VALUES (%s, %s) "
+                   "ON CONFLICT (usuario_id, cancion_id) DO NOTHING")
+        else:
+            sql = "INSERT OR IGNORE INTO conocidas (usuario_id, cancion_id) VALUES (?, ?)"
+        cur.executemany(sql, [(usuario_id, i) for i in ids])
+        con.commit()
+    finally:
+        con.close()
+    return contar_conocidas(usuario_id)
+
+
+def quitar_todas_conocidas(usuario_id):
+    """Borra todas las marcas de conocidas del usuario."""
+    _ejecutar("DELETE FROM conocidas WHERE usuario_id = ?", (usuario_id,))
+
+
 # ---------- Listas guardadas (historial de eventos) ----------
 
 def crear_lista(nombre, usuario, usuario_id, canciones_json):
@@ -554,5 +671,6 @@ def actualizar_cancion(cancion_id, titulo, artista, tono, etiquetas, letra,
 
 
 def borrar_cancion(cancion_id):
-    """Elimina una canción de la base de datos."""
+    """Elimina una canción de la base de datos (y sus marcas de 'conocida')."""
+    _ejecutar("DELETE FROM conocidas WHERE cancion_id = ?", (cancion_id,))
     _ejecutar("DELETE FROM canciones WHERE id = ?", (cancion_id,))

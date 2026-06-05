@@ -30,10 +30,33 @@
             {% for t in tempos %}<option value="{{ t }}" {% if t==f_tempo %}selected{% endif %}>{{ t }}</option>{% endfor %}
         </select>
     </label>
-    {% if f_grupo or f_funcion or f_tempo %}
+    {% if usuario_actual %}
+    <label>Conocidas:
+        <select name="conocidas" onchange="this.form.submit()">
+            <option value="">Todas</option>
+            <option value="si" {% if f_conocidas=='si' %}selected{% endif %}>⭐ Solo conocidas</option>
+            <option value="no" {% if f_conocidas=='no' %}selected{% endif %}>Sin conocer</option>
+        </select>
+    </label>
+    {% endif %}
+    {% if f_grupo or f_funcion or f_tempo or f_conocidas %}
         <a href="{{ url_for('inicio', q=busqueda) }}" class="btn btn-chico btn-gris">Quitar filtros</a>
     {% endif %}
 </form>
+
+{% if usuario_actual %}
+<div class="conocidas-barra">
+    <span class="conocidas-info">⭐ Tenés <strong>{{ total_conocidas }}</strong> canción(es) marcadas como conocidas.</span>
+    <form method="post" action="{{ url_for('marcar_todas_conocidas_ruta') }}" style="display:inline"
+          onsubmit="return confirm('¿Marcar TODAS las canciones visibles como conocidas por vos?');">
+        <button type="submit" class="btn btn-chico">⭐ Marcar todas como conocidas</button>
+    </form>
+    <form method="post" action="{{ url_for('quitar_todas_conocidas_ruta') }}" style="display:inline"
+          onsubmit="return confirm('¿Quitar todas tus marcas de conocidas?');">
+        <button type="submit" class="btn btn-chico btn-gris">Quitar todas</button>
+    </form>
+</div>
+{% endif %}
 
 {% if total > 0 %}
     <details class="indice">
@@ -74,6 +97,11 @@
                                     data-id="{{ cancion['id'] }}"
                                     data-titulo="{{ cancion['titulo'] }}"
                                     data-tono="{{ cancion['tono'] or '' }}">➕</button>
+                            {% if usuario_actual %}
+                            <button class="btn-conocida{% if cancion['id'] in conocidas %} activo{% endif %}"
+                                    title="Marcar como conocida (ya la toqué alguna vez)"
+                                    data-id="{{ cancion['id'] }}">{% if cancion['id'] in conocidas %}⭐{% else %}☆{% endif %}</button>
+                            {% endif %}
                             <a href="{{ url_for('ver_cancion', cancion_id=cancion['id']) }}">
                                 <span class="titulo">{{ cancion['titulo'] }}</span>
                                 {% if cancion['artista'] %}
@@ -155,6 +183,21 @@
             aviso.hidden = visibles > 0;
         });
     }
+
+    // Estrella "Conocida": marca/desmarca la canción para el usuario actual.
+    document.addEventListener("click", function (e) {
+        const cb = e.target.closest(".btn-conocida");
+        if (!cb) return;
+        const id = cb.dataset.id;
+        fetch("/conocida/" + id, { method: "POST" })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (d.ok) {
+                    cb.classList.toggle("activo", d.conocida);
+                    cb.textContent = d.conocida ? "⭐" : "☆";
+                }
+            });
+    });
 
     // Botón "+ Link" de YouTube (agregar link rápido desde la lista).
     document.addEventListener("click", function (e) {

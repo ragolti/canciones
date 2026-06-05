@@ -102,6 +102,7 @@ def inicio():
     f_grupo = request.args.get("grupo", "").strip()
     f_funcion = request.args.get("funcion", "").strip()
     f_tempo = request.args.get("tempo", "").strip()
+    f_conocidas = request.args.get("conocidas", "").strip()  # "" | "si" | "no"
 
     canciones = database.listar_canciones(busqueda)
     # Filtros por desplegable (estilo/grupo, función, tempo).
@@ -111,6 +112,14 @@ def inicio():
         canciones = [c for c in canciones if (c["funcion"] or "") == f_funcion]
     if f_tempo:
         canciones = [c for c in canciones if (c["tempo"] or "") == f_tempo]
+
+    # Conjunto de canciones que el usuario marcó como "conocidas" (ya las tocó).
+    u = usuario_actual()
+    conocidas = database.ids_conocidas(u["id"]) if u else set()
+    if u and f_conocidas == "si":
+        canciones = [c for c in canciones if c["id"] in conocidas]
+    elif u and f_conocidas == "no":
+        canciones = [c for c in canciones if c["id"] not in conocidas]
 
     grupos = database.agrupar_por_categoria(canciones)
     return render_template(
@@ -123,6 +132,8 @@ def inicio():
         estilos=database.CATEGORIAS_SUGERIDAS,
         tempos=database.TEMPOS,
         f_grupo=f_grupo, f_funcion=f_funcion, f_tempo=f_tempo,
+        conocidas=conocidas, f_conocidas=f_conocidas,
+        total_conocidas=database.contar_conocidas(u["id"]) if u else 0,
     )
 
 
@@ -334,6 +345,60 @@ def clasificar(cancion_id):
         valor = request.form.get("valor", "")
     ok = database.clasificar(cancion_id, campo, valor)
     return {"ok": bool(ok)}
+
+
+@app.route("/conocida/<int:cancion_id>", methods=["POST"])
+@login_required
+def conocida_toggle(cancion_id):
+    """Marca/desmarca una canción como 'conocida' por el usuario actual."""
+    u = usuario_actual()
+    conocida = database.alternar_conocida(u["id"], cancion_id)
+    return {"ok": True, "conocida": conocida}
+
+
+@app.route("/conocidas/marcar-todas", methods=["POST"])
+@login_required
+def marcar_todas_conocidas_ruta():
+    """Marca como conocidas TODAS las canciones visibles, para el usuario actual."""
+    u = usuario_actual()
+    canciones = database.listar_canciones(solo_aprobadas=True)
+    total = database.marcar_todas_conocidas(u["id"], [c["id"] for c in canciones])
+    flash(f"Marqué {total} canción(es) como conocidas para vos.")
+    return redirect(url_for("inicio"))
+
+
+@app.route("/conocidas/quitar-todas", methods=["POST"])
+@login_required
+def quitar_todas_conocidas_ruta():
+    """Quita TODAS las marcas de 'conocida' del usuario actual."""
+    u = usuario_actual()
+    database.quitar_todas_conocidas(u["id"])
+    flash("Quité todas tus marcas de canciones conocidas.")
+    return redirect(url_for("inicio"))
+
+
+@app.route("/conocidas/seed", methods=["POST"])
+def conocidas_seed():
+    """Marca todas las canciones como conocidas para un usuario dado. Protegido con token.
+
+    Sirve para la carga inicial (marcar de una vez las que ya existen). Body JSON:
+    {"usuario": "Ruben"}. Si no se pasa usuario (o no existe), devuelve la lista
+    de usuarios disponibles para elegir bien.
+    """
+    token = os.environ.get("ENRICH_TOKEN", "")
+    if not token or request.headers.get("X-Token", "") != token:
+        return {"ok": False, "error": "Token inválido"}, 403
+    datos = request.get_json(silent=True) or {}
+    nombre = (datos.get("usuario") or "").strip()
+    usuarios = [u["usuario"] for u in database.listar_usuarios()]
+    if not nombre:
+        return {"ok": False, "error": "Falta 'usuario'", "usuarios": usuarios}, 400
+    u = database.obtener_usuario(nombre)
+    if not u:
+        return {"ok": False, "error": "Usuario no encontrado", "usuarios": usuarios}, 404
+    canciones = database.listar_canciones(solo_aprobadas=True)
+    total = database.marcar_todas_conocidas(u["id"], [c["id"] for c in canciones])
+    return {"ok": True, "usuario": nombre, "conocidas": total}
 
 
 @app.route("/youtube/<int:cancion_id>", methods=["POST"])

@@ -384,6 +384,38 @@ footer {
 }
 .btn-agregar:hover { background: var(--color-principal); color: white; }
 
+/* Estrella "Conocida" (cada usuario marca las canciones que ya tocó) */
+.btn-conocida {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--gris-borde);
+    background: var(--card);
+    color: #c79a00;
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.btn-conocida:hover { transform: scale(1.12); border-color: #e0b400; }
+.btn-conocida.activo {
+    background: #fff7df;
+    border-color: #e0b400;
+}
+
+/* Barra de acciones de "Conocidas" (debajo de los filtros) */
+.conocidas-barra {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+    font-size: 0.88rem;
+    color: var(--texto-suave);
+}
+.conocidas-info { margin-right: 4px; }
+
 /* Botones rápidos de clasificación por canción */
 .clasif {
     display: flex;
