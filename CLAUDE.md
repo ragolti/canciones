@@ -60,3 +60,9 @@ letra, creada_en, modificada_en`
   y backups automáticos de la base. La app es muy liviana: con 2–4 GB de RAM y
   un SSD de 30–60 GB sobra. Pendiente: armar el plan paso a paso cuando se
   decida. (Mantenimiento y seguridad pasan a ser responsabilidad del usuario.)
+- **Reproductor de YouTube incrustado (embed) al lado de la canción**: cuando una
+  canción tiene link de YouTube, poder abrir un mini-reproductor (iframe de
+  YouTube) al lado/dentro de la vista de la canción, sin salir de la página.
+  Requisitos: que se pueda cerrar a mano; y que sea uno solo a la vez (si abro
+  el video de otra canción, reemplaza al anterior). Probablemente con un panel
+  lateral o flotante que cargue el iframe del video y un botón "cerrar".
