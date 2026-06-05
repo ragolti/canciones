@@ -504,13 +504,22 @@ def completar():
     def elegir(nuevo, viejo):
         return nuevo if (nuevo is not None and str(nuevo).strip() != "") else viejo
 
+    # Etiquetas: si llega "etiqueta_extra", se agrega a las existentes (sin repetir).
+    etiquetas = c["etiquetas"] or ""
+    extra = (datos.get("etiqueta_extra") or "").strip()
+    if extra:
+        actuales = [e.strip() for e in etiquetas.split(",") if e.strip()]
+        if database.sin_acentos(extra) not in [database.sin_acentos(e) for e in actuales]:
+            actuales.append(extra)
+        etiquetas = ", ".join(actuales)
+
     anio_actual = c["anio"] if "anio" in c.keys() else ""
     database.actualizar_cancion(
         int(cid),
         c["titulo"],
         elegir(datos.get("artista"), c["artista"]),
         elegir(datos.get("tono"), c["tono"]),
-        c["etiquetas"],
+        etiquetas,
         elegir(datos.get("letra"), c["letra"]),
         c["categoria"] if "categoria" in c.keys() else "",
         c["youtube"] if "youtube" in c.keys() else "",
