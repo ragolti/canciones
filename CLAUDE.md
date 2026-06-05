@@ -51,3 +51,12 @@ letra, creada_en, modificada_en`
   con autor o con la letra) y la app las agrega en lote, evitando duplicados.
   Probablemente convenga una pantalla "pegar texto" que detecte títulos y, si
   hay letra, la separe; dejar las nuevas como "pendientes de aprobación".
+- **Servidor propio (auto-hospedaje) en la sala de equipos del usuario**: correr
+  la app en una PC modesta o Raspberry Pi con Linux (Ubuntu Server), detrás del
+  router MikroTik CCR2116 (que ya está siempre online y con UPS). Objetivo:
+  eliminar el "arranque lento" del plan gratis de Render y no pagar hosting.
+  Requiere: abrir puertos 80/443 en el MikroTik, DDNS (el MikroTik lo trae
+  gratis) para la IP dinámica, candado HTTPS (Let's Encrypt), PostgreSQL local
+  y backups automáticos de la base. La app es muy liviana: con 2–4 GB de RAM y
+  un SSD de 30–60 GB sobra. Pendiente: armar el plan paso a paso cuando se
+  decida. (Mantenimiento y seguridad pasan a ser responsabilidad del usuario.)
