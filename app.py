@@ -16,6 +16,7 @@ import json
 import html as _html
 import urllib.request
 from functools import wraps
+from datetime import timedelta
 
 from flask import (
     Flask, render_template, request, redirect, url_for, flash, session, abort
@@ -29,6 +30,9 @@ app = Flask(__name__)
 # La clave secreta es necesaria para mostrar mensajes flash (avisos).
 # En el servidor (Render) se toma de una variable de entorno; en tu PC usa la de respaldo.
 app.secret_key = os.environ.get("SECRET_KEY", "cambia-esto-por-cualquier-texto-secreto")
+# Mantener la sesión iniciada por 60 días (dispositivos de confianza): así, una vez
+# que iniciás sesión, no te vuelve a pedir la contraseña aunque cierres el navegador.
+app.permanent_session_lifetime = timedelta(days=60)
 
 
 # ---------- Sesión / usuarios ----------
@@ -253,6 +257,7 @@ def registro():
         nuevo_id = database.crear_usuario(
             usuario, email, generate_password_hash(clave), rol
         )
+        session.permanent = True   # sesión recordada (60 días)
         session["usuario_id"] = nuevo_id
         session["usuario"] = usuario
         session["rol"] = rol
@@ -270,6 +275,7 @@ def login():
         clave = request.form.get("clave", "")
         u = database.obtener_usuario(usuario)
         if u and check_password_hash(u["clave_hash"], clave):
+            session.permanent = True   # sesión recordada (60 días)
             session["usuario_id"] = u["id"]
             session["usuario"] = u["usuario"]
             session["rol"] = u["rol"]
