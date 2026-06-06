@@ -1,24 +1,34 @@
 {% extends "base.html" %}
-{% block titulo %}Historial de listas · Adoremos{% endblock %}
+{% block titulo %}Listas · Adoremos{% endblock %}
 {% block contenido %}
-<h1>📅 Historial de listas</h1>
 
-<form class="hist-num" onsubmit="return irLista(event)">
-    <label>🔢 Ver lista por número:
-        <input type="number" id="num-lista" min="1" placeholder="Ej: 223">
-    </label>
-    <button type="submit" class="btn btn-chico">Ir</button>
-</form>
-<script>
-function irLista(e) {
-    e.preventDefault();
-    const n = document.getElementById("num-lista").value;
-    if (n) window.location = "/lista/" + n;
-    return false;
-}
-</script>
+<div class="hist-header">
+    <h1>
+        {% if filtro_tipo == 'futura' %}
+            🗓️ Listas futuras
+        {% else %}
+            📅 Listas históricas
+        {% endif %}
+    </h1>
 
+    {# ── Pestañas Futuras / Históricas ── #}
+    <div class="hist-tabs">
+        <a href="{{ url_for('historial', tipo='futura',   usuario=filtro_usuario, fav='1' if solo_fav else '') }}"
+           class="hist-tab {% if filtro_tipo == 'futura' %}activa{% endif %}">
+            🗓️ Futuras
+            <span class="hist-tab-desc">Próximos eventos</span>
+        </a>
+        <a href="{{ url_for('historial', tipo='historica', usuario=filtro_usuario, fav='1' if solo_fav else '') }}"
+           class="hist-tab {% if filtro_tipo == 'historica' %}activa{% endif %}">
+            📅 Históricas
+            <span class="hist-tab-desc">Eventos pasados</span>
+        </a>
+    </div>
+</div>
+
+{# ── Filtros ── #}
 <form class="hist-filtros" method="get" action="{{ url_for('historial') }}">
+    <input type="hidden" name="tipo" value="{{ filtro_tipo }}">
     <label>Usuario:
         <select name="usuario" onchange="this.form.submit()">
             <option value="">Todos</option>
@@ -31,34 +41,54 @@ function irLista(e) {
         <input type="checkbox" name="fav" value="1" {% if solo_fav %}checked{% endif %}
                onchange="this.form.submit()"> ⭐ Solo favoritas
     </label>
+    <a href="{{ url_for('historial', tipo=filtro_tipo) }}" class="btn btn-chico btn-gris">↺ Limpiar filtros</a>
+</form>
+
+{# ── Ir a lista por número ── #}
+<form class="hist-num" onsubmit="return irLista(event)">
+    <label>🔢 Ir a lista por número:
+        <input type="number" id="num-lista" min="1" placeholder="Ej: 223">
+    </label>
+    <button type="submit" class="btn btn-chico">Ir</button>
 </form>
 
 {% if listas %}
 <div class="hist-grid">
-    <!-- Izquierda: listas guardadas -->
+    {# ── Columna izquierda: listado ── #}
     <aside class="hist-listas">
         {% for l in listas %}
             <div class="hist-item" onclick="verLista({{ l['id'] }})" id="hist-item-{{ l['id'] }}">
                 <div class="hist-item-top">
-                    <span class="hist-nombre"><span class="hist-num-badge">#{{ l['id'] }}</span> {{ l['nombre'] }}</span>
+                    <span class="hist-nombre">
+                        <span class="hist-num-badge">#{{ l['id'] }}</span>
+                        {{ l['nombre'] }}
+                    </span>
                     {% if l['favorita'] %}<span class="hist-estrella">⭐</span>{% endif %}
                 </div>
                 <div class="hist-meta">
-                    👤 {{ l['usuario'] or '—' }} · {{ l['canciones']|length }} canciones
+                    👤 {{ l['usuario'] or '—' }}
+                    · {{ l['canciones']|length }} canciones
                     {% if l['creada_en'] %}· 📅 {{ l['creada_en'][:10] }}{% endif %}
                 </div>
             </div>
         {% endfor %}
     </aside>
 
-    <!-- Derecha: detalle de la lista elegida -->
+    {# ── Columna derecha: detalle ── #}
     <section class="hist-detalle" id="hist-detalle">
-        <p class="hist-vacio">← Elegí una lista de la izquierda para ver sus canciones.</p>
+        <p class="hist-vacio">← Elegí una lista para ver sus canciones.</p>
     </section>
 </div>
 {% else %}
     <div class="vacio">
-        <p>Todavía no hay listas guardadas{% if filtro_usuario or solo_fav %} con ese filtro{% endif %}.</p>
+        <p>
+            {% if filtro_tipo == 'futura' %}
+                No hay listas futuras guardadas{% if filtro_usuario or solo_fav %} con ese filtro{% endif %}.
+                <br>Para crear una, armá una lista en el panel 🎵 y guardala como <strong>🗓️ Futura</strong>.
+            {% else %}
+                No hay listas históricas guardadas{% if filtro_usuario or solo_fav %} con ese filtro{% endif %}.
+            {% endif %}
+        </p>
         <a href="{{ url_for('inicio') }}" class="btn btn-gris">← Volver al cancionero</a>
     </div>
 {% endif %}
@@ -68,24 +98,32 @@ function irLista(e) {
 const LISTAS = {{ listas|tojson }};
 const USUARIO_ACTUAL = {{ (usuario_actual.usuario if usuario_actual else '')|tojson }};
 const ES_ADMIN = {{ (usuario_actual and usuario_actual.rol == 'admin')|tojson }};
+const FILTRO_TIPO = {{ filtro_tipo|tojson }};
 
-function escaparH(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function escaparH(s) {
+    var d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+}
 
 function verLista(id) {
     document.querySelectorAll(".hist-item").forEach(function (el) { el.classList.remove("activa"); });
-    const item = document.getElementById("hist-item-" + id);
+    var item = document.getElementById("hist-item-" + id);
     if (item) item.classList.add("activa");
 
-    const l = LISTAS.find(function (x) { return x.id === id; });
+    var l = LISTAS.find(function (x) { return x.id === id; });
     if (!l) return;
-    const cont = document.getElementById("hist-detalle");
+    var cont = document.getElementById("hist-detalle");
 
-    let html = '<div class="hist-detalle-cab"><h2>' + escaparH(l.nombre) + '</h2>' +
-        '<div class="hist-meta">👤 ' + escaparH(l.usuario || "—") + '</div></div>';
+    var html = '<div class="hist-detalle-cab">';
+    html += '<h2>' + escaparH(l.nombre) + '</h2>';
+    html += '<div class="hist-meta">👤 ' + escaparH(l.usuario || "—");
+    if (l.creada_en) html += ' · 📅 ' + escaparH(l.creada_en.slice(0, 10));
+    html += '</div></div>';
 
     html += '<ol class="hist-canciones">';
     (l.canciones || []).forEach(function (c) {
-        const tono = c.tono ? '<span class="rep-tono">' + escaparH(c.tono) + '</span>' : '';
+        var tono = c.tono ? '<span class="rep-tono">' + escaparH(c.tono) + '</span>' : '';
         html += '<li>' + tono + '<a href="/cancion/' + c.id + '">' + escaparH(c.titulo) + '</a></li>';
     });
     html += '</ol>';
@@ -93,8 +131,16 @@ function verLista(id) {
     // Acciones
     html += '<div class="acciones" style="margin-top:14px;flex-wrap:wrap;gap:8px;">';
     html += '<button class="btn btn-nueva" onclick=\'usarLista(' + id + ')\'>📋 Usar esta lista</button>';
+
+    // Cambiar tipo (futura ↔ histórica)
+    var otroTipo = (l.tipo === 'futura') ? 'historica' : 'futura';
+    var otroLabel = (l.tipo === 'futura') ? '📅 Mover a Históricas' : '🗓️ Mover a Futuras';
+    html += '<form method="post" action="/listas/' + id + '/tipo" style="display:inline;">' +
+            '<input type="hidden" name="tipo" value="' + otroTipo + '">' +
+            '<button class="btn">' + otroLabel + '</button></form>';
+
     if (USUARIO_ACTUAL) {
-        const fav = l.favorita ? "Quitar de favoritas" : "⭐ Marcar favorita";
+        var fav = l.favorita ? "Quitar favorita" : "⭐ Favorita";
         html += '<form method="post" action="/listas/' + id + '/favorita" style="display:inline;">' +
                 '<button class="btn">' + fav + '</button></form>';
     }
@@ -109,10 +155,17 @@ function verLista(id) {
 }
 
 function usarLista(id) {
-    const l = LISTAS.find(function (x) { return x.id === id; });
+    var l = LISTAS.find(function (x) { return x.id === id; });
     if (!l) return;
     repCargarLista(l.canciones || []);
     window.location = "/";
+}
+
+function irLista(e) {
+    e.preventDefault();
+    var n = document.getElementById("num-lista").value;
+    if (n) window.location = "/lista/" + n;
+    return false;
 }
 </script>
 {% endblock %}

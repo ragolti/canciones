@@ -122,31 +122,68 @@ function repImprimir() {
 }
 
 // Guarda la lista actual en el historial (requiere estar logueado).
+// Muestra un modal para elegir: Futura (próximo evento) o Histórica (ya fue).
 function repGuardarHistorial() {
     const lista = repCargar();
     if (lista.length === 0) {
         alert("La lista está vacía. Agregá canciones con el botón ➕.");
         return;
     }
-    let nombre = repFechaTexto();
-    if (!nombre) {
-        nombre = prompt("Nombre o fecha de la lista (ej: Sábado 13 de junio):", "");
-        if (nombre === null) return;
-    }
-    fetch("/listas/guardar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre: nombre || "Lista sin fecha", canciones: lista }),
-    })
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-        if (d.ok) {
-            window.location = "/historial";
-        } else {
-            alert(d.error || "No se pudo guardar la lista.");
+
+    // Crear modal de tipo (futura / histórica)
+    var modal = document.createElement("div");
+    modal.id = "modal-guardar";
+    modal.style.cssText =
+        "position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;" +
+        "display:flex;align-items:center;justify-content:center;";
+    modal.innerHTML =
+        '<div style="background:#fff;color:#111;border-radius:14px;padding:28px 32px;' +
+        'max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.35);font-family:Arial,sans-serif;">' +
+        '<h3 style="margin:0 0 8px;font-size:1.2rem;">💾 Guardar lista</h3>' +
+        '<p style="margin:0 0 18px;color:#555;font-size:0.92rem;">' +
+        '¿Esta lista es para un evento próximo o ya fue realizado?</p>' +
+        '<div style="display:flex;gap:10px;margin-bottom:18px;">' +
+        '<button id="mg-futura" style="flex:1;padding:12px 8px;border-radius:8px;border:2px solid #1565c0;' +
+        'background:#e8f0fe;cursor:pointer;font-size:0.95rem;font-weight:bold;">' +
+        '🗓️ Futura<br><span style="font-weight:normal;font-size:0.78rem;">Evento próximo</span></button>' +
+        '<button id="mg-hist" style="flex:1;padding:12px 8px;border-radius:8px;border:2px solid #444;' +
+        'background:#f5f5f5;cursor:pointer;font-size:0.95rem;font-weight:bold;">' +
+        '📅 Histórica<br><span style="font-weight:normal;font-size:0.78rem;">Ya fue realizado</span></button>' +
+        '</div>' +
+        '<button id="mg-cancel" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ccc;' +
+        'background:#fff;cursor:pointer;color:#666;">Cancelar</button>' +
+        '</div>';
+    document.body.appendChild(modal);
+
+    function cerrarModal() { document.body.removeChild(modal); }
+
+    document.getElementById("mg-cancel").onclick = cerrarModal;
+
+    function guardarConTipo(tipo) {
+        cerrarModal();
+        var nombre = repFechaTexto();
+        if (!nombre) {
+            nombre = prompt("Nombre o fecha de la lista (ej: Sábado 13 de junio):", "");
+            if (nombre === null) return;
         }
-    })
-    .catch(function () { alert("No se pudo guardar la lista."); });
+        fetch("/listas/guardar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombre: nombre || "Lista sin fecha", canciones: lista, tipo: tipo }),
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d.ok) {
+                window.location = "/historial?tipo=" + tipo;
+            } else {
+                alert(d.error || "No se pudo guardar la lista.");
+            }
+        })
+        .catch(function () { alert("No se pudo guardar la lista."); });
+    }
+
+    document.getElementById("mg-futura").onclick = function () { guardarConTipo("futura"); };
+    document.getElementById("mg-hist").onclick   = function () { guardarConTipo("historica"); };
 }
 
 // Reemplaza el repertorio actual por el de una lista guardada (desde el historial).

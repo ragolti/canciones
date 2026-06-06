@@ -253,6 +253,7 @@ def inicializar():
                 usuario        TEXT DEFAULT '',
                 usuario_id     INTEGER,
                 favorita       INTEGER DEFAULT 0,
+                tipo           TEXT DEFAULT 'historica',
                 canciones_json TEXT DEFAULT '[]',
                 creada_en      TEXT DEFAULT (CURRENT_TIMESTAMP::text)
             )
@@ -265,11 +266,20 @@ def inicializar():
                 usuario        TEXT DEFAULT '',
                 usuario_id     INTEGER,
                 favorita       INTEGER DEFAULT 0,
+                tipo           TEXT DEFAULT 'historica',
                 canciones_json TEXT DEFAULT '[]',
                 creada_en      TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """
     _ejecutar(crear_listas)
+    # Agregar columna 'tipo' si no existe (para bases de datos ya creadas).
+    try:
+        if USAR_POSTGRES:
+            _ejecutar("ALTER TABLE listas ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT 'historica'")
+        else:
+            _ejecutar("ALTER TABLE listas ADD COLUMN tipo TEXT DEFAULT 'historica'")
+    except Exception:
+        pass  # Ya existe la columna
 
     # Tabla de "canciones conocidas" por usuario.
     # Cada fila significa: "el usuario X ya tocó / conoce la canción Y".
@@ -601,19 +611,23 @@ def quitar_todas_conocidas(usuario_id):
 
 # ---------- Listas guardadas (historial de eventos) ----------
 
-def crear_lista(nombre, usuario, usuario_id, canciones_json):
-    """Guarda una lista de evento y devuelve su id."""
+def crear_lista(nombre, usuario, usuario_id, canciones_json, tipo="historica"):
+    """Guarda una lista de evento y devuelve su id.
+    tipo: 'historica' (evento ya realizado) o 'futura' (evento próximo/planeado).
+    """
     sql = """
-        INSERT INTO listas (nombre, usuario, usuario_id, canciones_json)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO listas (nombre, usuario, usuario_id, canciones_json, tipo)
+        VALUES (?, ?, ?, ?, ?)
     """
     if USAR_POSTGRES:
         sql += " RETURNING id"
-    return _ejecutar(sql, (nombre, usuario, usuario_id, canciones_json), fetch="id")
+    return _ejecutar(sql, (nombre, usuario, usuario_id, canciones_json, tipo), fetch="id")
 
 
-def listar_listas(usuario=None, solo_favoritas=False):
-    """Lista las listas guardadas. Filtra por usuario y/o favoritas."""
+def listar_listas(usuario=None, solo_favoritas=False, tipo=None):
+    """Lista las listas guardadas. Filtra por usuario, favoritas y/o tipo.
+    tipo: 'historica', 'futura', o None (todas).
+    """
     cond = []
     params = []
     if usuario:
@@ -621,7 +635,11 @@ def listar_listas(usuario=None, solo_favoritas=False):
         params.append(usuario)
     if solo_favoritas:
         cond.append("favorita = 1")
+    if tipo:
+        cond.append("tipo = ?")
+        params.append(tipo)
     where = ("WHERE " + " AND ".join(cond)) if cond else ""
+    # Futuras: más recientes arriba. Históricas: más recientes arriba también.
     sql = f"SELECT * FROM listas {where} ORDER BY favorita DESC, creada_en DESC"
     return _ejecutar(sql, tuple(params), fetch="all")
 
@@ -632,6 +650,11 @@ def obtener_lista(lista_id):
 
 def cambiar_favorita(lista_id, valor):
     _ejecutar("UPDATE listas SET favorita = ? WHERE id = ?", (1 if valor else 0, lista_id))
+
+
+def cambiar_tipo_lista(lista_id, tipo):
+    """Cambia el tipo de lista entre 'futura' e 'historica'."""
+    _ejecutar("UPDATE listas SET tipo = ? WHERE id = ?", (tipo, lista_id))
 
 
 def borrar_lista(lista_id):

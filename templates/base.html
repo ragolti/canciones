@@ -22,6 +22,7 @@
                 <option value="amanecer">🌅 Amanecer</option>
                 <option value="violeta">🎨 Violeta</option>
             </select>
+            <a href="{{ url_for('historial') }}" class="btn" title="Ver listas guardadas">📅 Listas</a>
             {% if usuario_actual %}
                 <a href="{{ url_for('sugerencias') }}" class="btn">💡 Sugerencias</a>
                 {% if usuario_actual.rol == 'admin' %}

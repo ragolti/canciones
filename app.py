@@ -629,14 +629,17 @@ def guardar_lista():
     datos = request.get_json(silent=True) or {}
     nombre = (datos.get("nombre") or "").strip() or "Lista sin fecha"
     canciones = datos.get("canciones") or []
+    tipo = datos.get("tipo", "historica")
+    if tipo not in ("historica", "futura"):
+        tipo = "historica"
     if not canciones:
         return {"ok": False, "error": "La lista está vacía."}, 400
 
     u = usuario_actual()
     nuevo_id = database.crear_lista(
-        nombre, u["usuario"], u["id"], json.dumps(canciones, ensure_ascii=False)
+        nombre, u["usuario"], u["id"], json.dumps(canciones, ensure_ascii=False), tipo
     )
-    return {"ok": True, "id": nuevo_id}
+    return {"ok": True, "id": nuevo_id, "tipo": tipo}
 
 
 @app.route("/sugerencias")
@@ -656,11 +659,17 @@ def sugerencias():
 
 @app.route("/historial")
 def historial():
-    """Historial de listas guardadas, con filtro por usuario y favoritas."""
+    """Historial de listas guardadas, con filtro por usuario, tipo y favoritas."""
     filtro_usuario = request.args.get("usuario", "").strip()
     solo_fav = request.args.get("fav") == "1"
+    filtro_tipo = request.args.get("tipo", "historica")   # 'historica' o 'futura'
+    if filtro_tipo not in ("historica", "futura"):
+        filtro_tipo = "historica"
+
     listas = database.listar_listas(
-        usuario=filtro_usuario or None, solo_favoritas=solo_fav
+        usuario=filtro_usuario or None,
+        solo_favoritas=solo_fav,
+        tipo=filtro_tipo,
     )
     # Parsear las canciones de cada lista para mostrarlas.
     listas_datos = []
@@ -678,7 +687,21 @@ def historial():
         usuarios=database.usuarios_de_listas(),
         filtro_usuario=filtro_usuario,
         solo_fav=solo_fav,
+        filtro_tipo=filtro_tipo,
     )
+
+
+@app.route("/listas/<int:lista_id>/tipo", methods=["POST"])
+@login_required
+def cambiar_tipo_lista(lista_id):
+    """Cambia el tipo de la lista entre 'futura' e 'historica'."""
+    lista = database.obtener_lista(lista_id)
+    nuevo_tipo = request.form.get("tipo", "historica")
+    if nuevo_tipo not in ("historica", "futura"):
+        nuevo_tipo = "historica"
+    if lista:
+        database.cambiar_tipo_lista(lista_id, nuevo_tipo)
+    return redirect(url_for("historial", tipo=nuevo_tipo))
 
 
 @app.route("/listas/<int:lista_id>/favorita", methods=["POST"])

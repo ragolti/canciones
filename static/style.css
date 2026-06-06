@@ -853,6 +853,45 @@ footer {
 }
 
 /* ===== Historial de listas ===== */
+
+/* Cabecera con título y pestañas */
+.hist-header { margin-bottom: 12px; }
+.hist-header h1 { margin: 0 0 12px; }
+
+/* Pestañas Futuras / Históricas */
+.hist-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--gris-borde);
+    margin-bottom: 16px;
+}
+.hist-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 28px 8px;
+    text-decoration: none;
+    color: var(--texto-suave);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: color .15s, border-color .15s;
+    border-radius: 8px 8px 0 0;
+}
+.hist-tab:hover { color: var(--color-principal); }
+.hist-tab.activa {
+    color: var(--color-principal);
+    border-bottom-color: var(--color-principal);
+    background: var(--card);
+}
+.hist-tab-desc {
+    font-size: 0.72rem;
+    font-weight: 400;
+    opacity: .7;
+    margin-top: 1px;
+}
+
 .hist-filtros {
     display: flex;
     gap: 18px;
