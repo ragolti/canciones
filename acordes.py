@@ -28,7 +28,7 @@ EN_A_ES = {"C": "Do", "D": "Re", "E": "Mi", "F": "Fa", "G": "Sol", "A": "La", "B
 # letras que también son notas inglesas (D, F).
 NOTA = r"(?:[Ss][Oo][Ll]|[Dd][Oo]|[Rr][Ee]|[Mm][Ii]|[Ff][Aa]|[Ll][Aa]|[Ss][Ii]|[A-G])"
 ALTERACION = r"(?:#|b)?"
-SUFIJO = r"(?:m|maj|min|dim|aug|sus|add|°|º|\+|\d)*"
+SUFIJO = r"(?:m|[Mm]aj|[Mm]in|[Dd]im|[Aa]ug|[Ss]us|[Aa]dd|°|º|\+|\d)*"
 BAJO = r"(?:/" + NOTA + ALTERACION + r")?"
 RE_ACORDE = re.compile(r"^" + NOTA + ALTERACION + SUFIJO + BAJO + r"$")
 

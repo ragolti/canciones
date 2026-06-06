@@ -25,6 +25,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 import database
 import acordes
+from markupsafe import Markup, escape as _escape
 
 app = Flask(__name__)
 # La clave secreta es necesaria para mostrar mensajes flash (avisos).
@@ -33,6 +34,56 @@ app.secret_key = os.environ.get("SECRET_KEY", "cambia-esto-por-cualquier-texto-s
 # Mantener la sesión iniciada por 60 días (dispositivos de confianza): así, una vez
 # que iniciás sesión, no te vuelve a pedir la contraseña aunque cierres el navegador.
 app.permanent_session_lifetime = timedelta(days=60)
+
+
+# ── Filtros Jinja2 para renderizar letras con acordes en color ──────────────
+
+@app.template_filter("es_linea_acorde")
+def filtro_es_linea_acorde(linea):
+    """True si la línea contiene solo acordes (para colorearla en las plantillas)."""
+    return _es_linea_acorde_ext(linea.strip())
+
+
+# Separadores típicos entre acordes que no son acordes en sí mismos.
+_SEPARADORES_ACORDE = {"-", "–", "—", "|", "//", "////", "...", "…", "+", "(", ")", "x2", "x3", "x4"}
+
+
+def _es_linea_acorde_ext(linea):
+    """Como _es_linea_de_acordes pero también permite guiones y separadores comunes.
+
+    Por ejemplo: 'E - Cm7 - B - A' se considera línea de acordes aunque tenga '-'.
+    """
+    tokens = linea.split()
+    if not tokens:
+        return False
+    return all(acordes.RE_ACORDE.match(t) or t in _SEPARADORES_ACORDE for t in tokens)
+
+
+@app.template_filter("letra_html")
+def filtro_letra_html(texto):
+    """Convierte la letra (texto plano) a HTML con acordes en color.
+
+    Cada línea se envuelve en un <span> con clase:
+      .ln-acorde   → línea de acordes (color naranja/rojo)
+      .ln-seccion  → indicación de sección como (Coro), [Estrofa], etc.
+      .ln-letra    → línea de letra normal
+      .ln-vacio    → línea en blanco (espacio entre estrofas)
+    """
+    if not texto:
+        return Markup("")
+    partes = []
+    for linea in texto.splitlines():
+        stripped = linea.strip()
+        if not stripped:
+            partes.append('<span class="ln-vacio"></span>')
+        elif _es_linea_acorde_ext(stripped):
+            partes.append(f'<span class="ln-acorde">{_escape(linea)}</span>')
+        elif (stripped.startswith("(") and stripped.endswith(")")) or \
+             (stripped.startswith("[") and stripped.endswith("]")):
+            partes.append(f'<span class="ln-seccion">{_escape(linea)}</span>')
+        else:
+            partes.append(f'<span class="ln-letra">{_escape(linea)}</span>')
+    return Markup("\n".join(partes))
 
 
 # ---------- Sesión / usuarios ----------

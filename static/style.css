@@ -966,3 +966,62 @@ footer {
     cursor: pointer;
 }
 .ed-mas:hover { color: var(--color-principal); border-color: var(--color-principal); }
+
+
+/* ================================================================
+   LETRA CON ACORDES EN COLOR
+   Usada en cancion.html, imprimir.html y repertorio_pdf.html
+   ================================================================ */
+
+/* Contenedor principal en la vista de canción */
+.letra-bloque {
+    font-family: "Calibri", "Segoe UI", "Arial", sans-serif;
+    font-size: 1.05rem;   /* ajustable con los botones A+ / A− */
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 14px 0 10px;
+}
+
+/* Líneas de acordes: color rojo ladrillo, un poco más chico */
+.ln-acorde {
+    display: block;
+    font-size: 0.78em;         /* relativo al contenedor, siempre más chico */
+    font-weight: 700;
+    color: #c0392b;            /* rojo ladrillo */
+    letter-spacing: 0.04em;
+    margin-top: 0.35em;
+    white-space: pre-wrap;
+}
+
+/* Líneas de letra: igual al contenedor */
+.ln-letra {
+    display: block;
+    font-weight: 700;
+    white-space: pre-wrap;
+}
+
+/* Indicaciones de sección: (Coro), [Estrofa], etc. */
+.ln-seccion {
+    display: block;
+    font-size: 0.78em;
+    font-style: italic;
+    font-weight: 400;
+    color: #888;
+    margin-top: 0.5em;
+    white-space: pre-wrap;
+}
+
+/* Líneas vacías: espacio entre estrofas */
+.ln-vacio {
+    display: block;
+    height: 0.55em;
+}
+
+/* Controles de tamaño A+ / A− */
+.letra-controles {
+    margin: 6px 0 16px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}

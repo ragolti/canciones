@@ -2,101 +2,215 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ titulo_lista or "Repertorio" }}</title>
     <style>
-        /* Tamaño y orientación de la hoja (configurable desde la lista) */
+        /* ─── IMPRESIÓN: A4 horizontal, una canción por hoja ─── */
         @page {
-            size: {{ "Letter" if tamano == "letter" else "A4" }} {{ "landscape" if orientacion == "horizontal" else "portrait" }};
-            margin: 1.2cm;
+            size: A4 landscape;
+            margin: 7mm 11mm 8mm 11mm;
         }
 
-        * { box-sizing: border-box; }
+        *, *::before, *::after { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; }
+
         body {
-            font-size: 12pt;
-            line-height: 1.5;
+            font-family: "Calibri", "Arial", "Helvetica Neue", sans-serif;
+            background: #fff;
+            color: #111;
+            /* Para imprimir: que se vean los colores de fondo */
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
+        /* ─── Barra de acciones (solo en pantalla, no en impresión) ─── */
         .barra {
             text-align: center;
-            padding: 14px;
-            background: #f0f0f0;
+            padding: 10px 16px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        .barra button {
+        .barra button, .barra a {
             font-size: 1rem;
-            padding: 10px 22px;
+            padding: 8px 20px;
             cursor: pointer;
             border: 1px solid #888;
             border-radius: 8px;
             background: white;
+            text-decoration: none;
+            color: #111;
         }
-        .barra .ayuda { font-size: 0.8rem; color: #555; margin-top: 8px; }
-
-        .cancion {
-            padding: 18px 22px;
-            page-break-after: always;
-            break-after: page;
-        }
-        .cancion:last-child { page-break-after: auto; break-after: auto; }
-
-        .cabecera { border-bottom: 2px solid currentColor; margin-bottom: 12px; padding-bottom: 6px; }
-        .numero { font-size: 0.9rem; opacity: 0.6; }
-        h1 { font-size: 1.6rem; margin: 2px 0; }
-        .meta { font-size: 0.95rem; opacity: 0.8; }
-        .meta span { margin-right: 18px; }
-
-        .letra {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-family: "Consolas", "Courier New", monospace;
-            font-size: 1rem;
-            columns: 2;
-            column-gap: 28px;
-        }
+        .barra .ayuda { font-size: 0.8rem; color: #666; width: 100%; text-align: center; }
         @media print { .barra { display: none; } }
 
-        /* ===== Estilo CLÁSICO (blanco) ===== */
-        .estilo-clasico { background: #fff; color: #111; font-family: Georgia, serif; }
+        /* ─── Una canción por página ─── */
+        .pagina {
+            page-break-after: always;
+            break-after: page;
+            /* En pantalla: simular la hoja A4 landscape */
+            width: 277mm;
+            min-height: 195mm;
+            max-width: 100%;
+            margin: 18px auto;
+            padding: 7mm 11mm;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.10);
+            overflow: hidden;
+        }
+        .pagina:last-child { page-break-after: auto; break-after: auto; }
+        @media print {
+            .pagina {
+                border: none;
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                min-height: 0;
+            }
+        }
 
-        /* ===== Estilo DARK (fondo oscuro) ===== */
-        .estilo-dark { background: #15151c; color: #f2f2f2; font-family: "Segoe UI", Arial, sans-serif; }
-        .estilo-dark h1 { color: #b9a6ff; }
+        /* ─── Cabecera de la canción ─── */
+        .cab {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 10px;
+            border-bottom: 2.5px solid #222;
+            padding-bottom: 3.5mm;
+            margin-bottom: 4mm;
+            line-height: 1.1;
+        }
+        .cab-izq { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+        .cab-num {
+            font-size: 0.82rem;
+            color: #aaa;
+            font-weight: normal;
+            white-space: nowrap;
+        }
+        .cab-titulo {
+            font-size: 1.9rem;
+            font-weight: 900;
+            color: #111;
+            line-height: 1;
+        }
+        .cab-artista {
+            font-size: 0.88rem;
+            color: #666;
+            font-weight: normal;
+            white-space: nowrap;
+        }
+        .cab-tono {
+            font-size: 0.88rem;
+            font-weight: bold;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 2px 10px;
+            border-radius: 5px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
 
-        /* ===== Estilo ANTIGUO (sepia) ===== */
-        .estilo-antiguo { background: #f4ecd8; color: #4b3a26; font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif; }
-        .estilo-antiguo h1 { color: #6b4e2e; }
+        /* ─── Área de letra con 2 columnas ─── */
+        .letra {
+            columns: 2;
+            column-gap: 16mm;
+            column-fill: auto;          /* llena col izquierda primero */
+            font-family: "Calibri", "Arial", sans-serif;
+            font-weight: bold;
+            font-size: 1.35rem;         /* ≈ 19-20pt en A4 */
+            line-height: 1.28;
+        }
+
+        /* ─── Tipos de líneas ─── */
+        .ln-vacio  { display: block; height: 0.45em; }
+
+        .ln-acorde {
+            display: block;
+            font-size: 0.9rem;          /* acordes más chicos que la letra */
+            font-weight: bold;
+            color: #c0392b;             /* rojo ladrillo, como en el original */
+            line-height: 1.35;
+            letter-spacing: 0.03em;
+            white-space: pre-wrap;
+            margin-top: 0.3em;
+        }
+
+        .ln-letra {
+            display: block;
+            white-space: pre-wrap;
+        }
+
+        .ln-seccion {
+            display: block;
+            font-size: 0.78rem;
+            font-style: italic;
+            font-weight: normal;
+            color: #888;
+            margin-top: 0.4em;
+            white-space: pre-wrap;
+        }
+
+        /* ─── Canción vacía ─── */
+        .vacia {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 60mm;
+            font-size: 1.1rem;
+            color: #aaa;
+        }
     </style>
 </head>
-<body class="estilo-{{ estilo }}">
-    <div class="barra">
-        <button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
-        <div class="ayuda">
-            Tip: en el diálogo de impresión activá <b>"Gráficos en segundo plano"</b>
-            para que se vean los fondos de color (estilo Dark / Antiguo).
-        </div>
-    </div>
+<body>
 
-    {% if canciones %}
-        {% for cancion in canciones %}
-            <section class="cancion">
-                <div class="cabecera">
-                    <div class="numero">{{ loop.index }} de {{ canciones|length }}{% if titulo_lista %} · {{ titulo_lista }}{% endif %}</div>
-                    <h1>{{ cancion['titulo'] }}</h1>
-                    <div class="meta">
-                        {% if cancion['tono'] %}<span><b>Tono:</b> {{ cancion['tono'] }}</span>{% endif %}
-                        {% if cancion['artista'] %}<span>{{ cancion['artista'] }}</span>{% endif %}
-                    </div>
+<div class="barra">
+    <button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+    <a href="javascript:history.back()">← Volver</a>
+    <div class="ayuda">
+        Tip: en el diálogo de impresión activá <b>"Gráficos en segundo plano"</b>
+        para que se vean los colores.
+    </div>
+</div>
+
+{% if canciones %}
+    {% for cancion in canciones %}
+        <div class="pagina">
+            {# ── Cabecera ── #}
+            <div class="cab">
+                <div class="cab-izq">
+                    <span class="cab-num">{{ loop.index }} de {{ canciones|length }}{% if titulo_lista %} · {{ titulo_lista }}{% endif %}</span>
+                    <span class="cab-titulo">{{ cancion['titulo'] }}</span>
+                    {% if cancion['artista'] %}
+                        <span class="cab-artista">{{ cancion['artista'] }}</span>
+                    {% endif %}
                 </div>
-                <div class="letra">{{ cancion['letra'] }}</div>
-            </section>
-        {% endfor %}
-    {% else %}
-        <div class="cancion">
-            <h1>La lista está vacía</h1>
-            <p>Volvé al cancionero y agregá canciones con el botón ➕.</p>
+                {% if cancion['tono'] %}
+                    <span class="cab-tono">Tono: {{ cancion['tono'] }}</span>
+                {% endif %}
+            </div>
+
+            {# ── Letra con acordes en color ── #}
+            {% if cancion['letra'] %}
+                <div class="letra">{{ cancion['letra'] | letra_html }}</div>
+            {% else %}
+                <div class="vacia">— sin letra —</div>
+            {% endif %}
         </div>
-    {% endif %}
+    {% endfor %}
+{% else %}
+    <div class="pagina">
+        <div class="vacia">La lista está vacía. Volvé al cancionero y agregá canciones.</div>
+    </div>
+{% endif %}
+
 </body>
 </html>

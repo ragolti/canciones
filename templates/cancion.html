@@ -68,8 +68,49 @@
         </div>
     {% endif %}
 
-    <pre class="letra">{{ cancion['letra'] }}</pre>
+    {# ── Vista de la letra: acordes en color, letra grande ── #}
+    <div class="letra-bloque" id="letra-bloque">
+        {{ cancion['letra'] | letra_html }}
+    </div>
+
+    <div class="letra-controles">
+        <button class="btn btn-chico" onclick="cambiarTam(-1)">A−</button>
+        <button class="btn btn-chico" onclick="cambiarTam(+1)">A+</button>
+        <button class="btn btn-chico btn-gris" onclick="cambiarTam(0)" title="Tamaño normal">↺</button>
+    </div>
 
     <a href="{{ url_for('inicio') }}" class="btn btn-gris">← Volver a la lista</a>
 </article>
+
+<script>
+// Ajuste de tamaño de fuente de la letra (persiste en localStorage).
+const CLAVE_TAM = "letra_tam";
+const TAM_BASE = 1.05;  // rem, tamaño base
+const TAM_MIN = 0.75;
+const TAM_MAX = 2.2;
+const PASO = 0.15;
+
+function aplicarTam(rem) {
+    document.getElementById("letra-bloque").style.fontSize = rem + "rem";
+}
+function cambiarTam(delta) {
+    const bloque = document.getElementById("letra-bloque");
+    let actual = parseFloat(bloque.style.fontSize) || TAM_BASE;
+    let nuevo = delta === 0 ? TAM_BASE : Math.min(TAM_MAX, Math.max(TAM_MIN, actual + (delta * PASO)));
+    nuevo = Math.round(nuevo * 100) / 100;
+    aplicarTam(nuevo);
+    try { localStorage.setItem(CLAVE_TAM, nuevo); } catch(e) {}
+}
+// Restaurar tamaño guardado al cargar.
+(function() {
+    try {
+        const guardado = parseFloat(localStorage.getItem(CLAVE_TAM));
+        if (guardado && guardado >= TAM_MIN && guardado <= TAM_MAX) {
+            aplicarTam(guardado);
+            return;
+        }
+    } catch(e) {}
+    aplicarTam(TAM_BASE);
+})();
+</script>
 {% endblock %}

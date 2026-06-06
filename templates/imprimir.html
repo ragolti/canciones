@@ -2,41 +2,94 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ cancion['titulo'] }}</title>
     <style>
+        @page {
+            size: A4 landscape;
+            margin: 8mm 12mm;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+
         body {
-            font-family: "Georgia", serif;
-            color: #000;
-            max-width: 720px;
-            margin: 30px auto;
-            padding: 0 20px;
+            font-family: "Calibri", "Arial", sans-serif;
+            background: #fff;
+            color: #111;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
-        h1 { margin-bottom: 4px; }
-        .meta { color: #444; font-size: 0.95rem; margin-bottom: 20px; }
-        .meta span { margin-right: 18px; }
-        .letra {
-            font-family: "Consolas", "Courier New", monospace;
-            font-size: 1rem;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.6;
-        }
+
+        /* Barra (solo pantalla) */
         .barra {
             text-align: center;
-            margin-bottom: 24px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #ddd;
         }
         .barra button {
-            font-size: 1rem;
-            padding: 10px 22px;
-            cursor: pointer;
-            border: 1px solid #888;
-            border-radius: 8px;
-            background: #f5f5f5;
+            font-size: 1rem; padding: 8px 20px; cursor: pointer;
+            border: 1px solid #888; border-radius: 8px; background: white;
         }
-        /* Al imprimir, se oculta el botón. */
+        @media print { .barra { display: none; } }
+
+        /* Hoja */
+        .hoja {
+            width: 277mm;
+            max-width: 100%;
+            min-height: 195mm;
+            margin: 18px auto;
+            padding: 8mm 11mm;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.10);
+        }
         @media print {
-            .barra { display: none; }
-            body { margin: 0; }
+            .hoja { border: none; box-shadow: none; margin: 0; padding: 0; width: 100%; }
+        }
+
+        /* Cabecera */
+        .cab {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            border-bottom: 2.5px solid #222;
+            padding-bottom: 3.5mm;
+            margin-bottom: 4mm;
+        }
+        .cab-titulo { font-size: 2rem; font-weight: 900; line-height: 1; }
+        .cab-artista { font-size: 0.9rem; color: #666; font-weight: normal; margin-left: 12px; }
+        .cab-tono {
+            font-size: 0.9rem; font-weight: bold;
+            background: #1a1a2e; color: #fff;
+            padding: 2px 10px; border-radius: 5px;
+        }
+
+        /* Letra */
+        .letra {
+            columns: 2;
+            column-gap: 16mm;
+            column-fill: auto;
+            font-family: "Calibri", "Arial", sans-serif;
+            font-weight: bold;
+            font-size: 1.35rem;
+            line-height: 1.28;
+        }
+
+        .ln-vacio   { display: block; height: 0.45em; }
+        .ln-acorde  {
+            display: block; white-space: pre-wrap;
+            font-size: 0.9rem; font-weight: bold;
+            color: #c0392b;
+            line-height: 1.35; letter-spacing: 0.03em;
+            margin-top: 0.3em;
+        }
+        .ln-letra   { display: block; white-space: pre-wrap; }
+        .ln-seccion {
+            display: block; white-space: pre-wrap;
+            font-size: 0.78rem; font-style: italic;
+            font-weight: normal; color: #888; margin-top: 0.4em;
         }
     </style>
 </head>
@@ -45,12 +98,22 @@
         <button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
     </div>
 
-    <h1>{{ cancion['titulo'] }}</h1>
-    <div class="meta">
-        {% if cancion['artista'] %}<span>{{ cancion['artista'] }}</span>{% endif %}
-        {% if cancion['tono'] %}<span>Tono: {{ cancion['tono'] }}</span>{% endif %}
-    </div>
+    <div class="hoja">
+        <div class="cab">
+            <div>
+                <span class="cab-titulo">{{ cancion['titulo'] }}</span>
+                {% if cancion['artista'] %}
+                    <span class="cab-artista">{{ cancion['artista'] }}</span>
+                {% endif %}
+            </div>
+            {% if cancion['tono'] %}
+                <span class="cab-tono">Tono: {{ cancion['tono'] }}</span>
+            {% endif %}
+        </div>
 
-    <div class="letra">{{ cancion['letra'] }}</div>
+        <div class="letra">
+            {{ cancion['letra'] | letra_html }}
+        </div>
+    </div>
 </body>
 </html>
