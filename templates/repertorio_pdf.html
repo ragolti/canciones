@@ -18,15 +18,14 @@
             font-family: "Calibri", "Arial", "Helvetica Neue", sans-serif;
             background: #fff;
             color: #111;
-            /* Para imprimir: que se vean los colores de fondo */
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
-        /* ─── Barra de acciones (solo en pantalla, no en impresión) ─── */
+        /* ─── Barra de acciones (solo en pantalla) ─── */
         .barra {
             text-align: center;
-            padding: 10px 16px;
+            padding: 8px 16px;
             background: #f5f5f5;
             border-bottom: 1px solid #ddd;
             position: sticky;
@@ -36,11 +35,11 @@
             align-items: center;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
         }
         .barra button, .barra a {
-            font-size: 1rem;
-            padding: 8px 20px;
+            font-size: 0.95rem;
+            padding: 6px 16px;
             cursor: pointer;
             border: 1px solid #888;
             border-radius: 8px;
@@ -48,25 +47,49 @@
             text-decoration: none;
             color: #111;
         }
-        .barra .ayuda { font-size: 0.8rem; color: #666; width: 100%; text-align: center; }
+        .barra .ayuda { font-size: 0.75rem; color: #666; width: 100%; text-align: center; margin-top: 2px; }
         @media print { .barra { display: none; } }
+
+        /* ─── Pantalla completa: ocultar barra, mostrar hint ─── */
+        :fullscreen .barra,
+        :-webkit-full-screen .barra { display: none !important; }
+
+        .hint-fs {
+            display: none;
+            position: fixed;
+            bottom: 12px;
+            right: 16px;
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            font-size: 0.78rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            z-index: 100;
+            pointer-events: none;
+        }
+        :fullscreen .hint-fs,
+        :-webkit-full-screen .hint-fs { display: block; }
+        @media print { .hint-fs { display: none !important; } }
 
         /* ─── Una canción por página ─── */
         .pagina {
             page-break-after: always;
             break-after: page;
-            /* En pantalla: simular la hoja A4 landscape */
-            width: 277mm;
-            min-height: 195mm;
-            max-width: 100%;
-            margin: 18px auto;
-            padding: 7mm 11mm;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-shadow: 0 2px 12px rgba(0,0,0,.10);
             overflow: hidden;
         }
         .pagina:last-child { page-break-after: auto; break-after: auto; }
+
+        /* En pantalla: cada página ocupa toda la altura de la ventana */
+        @media screen {
+            .pagina {
+                /* La altura se calcula dinámicamente por JS según la barra */
+                width: 100%;
+                border-bottom: 2px solid #e8e8e8;
+                padding: 6px 22px 8px;
+            }
+        }
+
+        /* En impresión: hoja A4 sin bordes */
         @media print {
             .pagina {
                 border: none;
@@ -74,7 +97,7 @@
                 margin: 0;
                 padding: 0;
                 width: 100%;
-                min-height: 0;
+                height: auto;
             }
         }
 
@@ -85,31 +108,32 @@
             justify-content: space-between;
             gap: 10px;
             border-bottom: 2.5px solid #222;
-            padding-bottom: 3.5mm;
-            margin-bottom: 4mm;
+            padding-bottom: 3mm;
+            margin-bottom: 3mm;
             line-height: 1.1;
+            flex-shrink: 0;
         }
-        .cab-izq { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+        .cab-izq { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
         .cab-num {
-            font-size: 0.82rem;
+            font-size: 0.78rem;
             color: #aaa;
             font-weight: normal;
             white-space: nowrap;
         }
         .cab-titulo {
-            font-size: 1.9rem;
+            font-size: 1.8rem;
             font-weight: 900;
             color: #111;
             line-height: 1;
         }
         .cab-artista {
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             color: #666;
             font-weight: normal;
             white-space: nowrap;
         }
         .cab-tono {
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             font-weight: bold;
             background: #1a1a2e;
             color: #fff;
@@ -122,26 +146,26 @@
         /* ─── Área de letra con 2 columnas ─── */
         .letra {
             columns: 2;
-            column-gap: 16mm;
-            column-fill: balance;       /* distribuye parejo entre las 2 columnas */
+            column-gap: 14mm;
+            column-fill: balance;
             font-family: "Calibri", "Arial", sans-serif;
             font-weight: bold;
-            font-size: 1.35rem;         /* ≈ 19-20pt en A4 */
+            font-size: 1.35rem;   /* JS lo sobreescribe en pantalla */
             line-height: 1.28;
         }
 
-        /* ─── Tipos de líneas ─── */
-        .ln-vacio  { display: block; height: 0.45em; }
+        /* ─── Tipos de líneas: tamaños relativos para escalar con la fuente base ─── */
+        .ln-vacio  { display: block; height: 0.4em; }
 
         .ln-acorde {
             display: block;
-            font-size: 0.9rem;          /* acordes más chicos que la letra */
+            font-size: 0.65em;      /* relativo → escala con la fuente base */
             font-weight: bold;
-            color: #1565c0;             /* azul oscuro — igual a la vista en pantalla */
+            color: #1565c0;
             line-height: 1.35;
             letter-spacing: 0.03em;
             white-space: pre-wrap;
-            margin-top: 0.3em;
+            margin-top: 0.25em;
         }
 
         .ln-letra {
@@ -151,11 +175,11 @@
 
         .ln-seccion {
             display: block;
-            font-size: 0.78rem;
+            font-size: 0.6em;       /* relativo */
             font-style: italic;
             font-weight: normal;
             color: #888;
-            margin-top: 0.4em;
+            margin-top: 0.35em;
             white-space: pre-wrap;
         }
 
@@ -174,16 +198,22 @@
 
 <div class="barra">
     <button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+    <button onclick="togglePantallaCompleta()" title="Ctrl+L">⛶ Pantalla completa</button>
     <a href="javascript:history.back()">← Volver</a>
     <div class="ayuda">
-        Tip: en el diálogo de impresión activá <b>"Gráficos en segundo plano"</b>
-        para que se vean los colores.
+        <b>Ctrl+L</b> pantalla completa &nbsp;·&nbsp;
+        <b>← →</b> o <b>PgUp/PgDn</b> para cambiar de canción &nbsp;·&nbsp;
+        Tip: activá <b>"Gráficos en segundo plano"</b> al imprimir para ver los colores.
     </div>
+</div>
+
+<div class="hint-fs">
+    ← → cambiar canción &nbsp;·&nbsp; Esc salir
 </div>
 
 {% if canciones %}
     {% for cancion in canciones %}
-        <div class="pagina">
+        <div class="pagina" data-idx="{{ loop.index0 }}">
             {# ── Cabecera ── #}
             <div class="cab">
                 <div class="cab-izq">
@@ -221,5 +251,129 @@
     </div>
 {% endif %}
 
+<script>
+// ─────────────────────────────────────────────────────────────
+// AUTO-ESCALA: agranda la fuente para llenar cada página.
+// Usa búsqueda binaria para encontrar el tamaño óptimo.
+// ─────────────────────────────────────────────────────────────
+function alturaDisponible() {
+    // En pantalla: ventana menos la barra superior
+    const barra = document.querySelector('.barra');
+    const alturaBarra = barra ? barra.offsetHeight : 0;
+    return window.innerHeight - alturaBarra;
+}
+
+function ajustarAlturasPaginas() {
+    const h = alturaDisponible();
+    document.querySelectorAll('.pagina').forEach(p => {
+        p.style.height = h + 'px';
+    });
+}
+
+function escalarPaginas() {
+    if (window.matchMedia('print').matches) return;
+
+    document.querySelectorAll('.pagina').forEach(pagina => {
+        const bloque = pagina.querySelector('.letra');
+        if (!bloque) return;
+
+        const cab = pagina.querySelector('.cab');
+        const margen = 8; // px de espacio libre abajo
+        const alturaMax = pagina.clientHeight - (cab ? cab.offsetHeight : 0) - margen;
+
+        if (alturaMax < 40) return;
+
+        // Búsqueda binaria: tamaño mínimo 0.8rem, máximo 7rem
+        let lo = 0.8, hi = 7.0;
+        for (let i = 0; i < 22; i++) {
+            const mid = (lo + hi) / 2;
+            bloque.style.fontSize = mid + 'rem';
+            if (bloque.offsetHeight <= alturaMax) {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+        // Aplicar el último valor que entra
+        bloque.style.fontSize = (Math.floor(lo * 100) / 100) + 'rem';
+    });
+}
+
+function reescalar() {
+    ajustarAlturasPaginas();
+    escalarPaginas();
+}
+
+// Esperar a que carguen las fuentes para medir bien
+document.fonts.ready.then(reescalar);
+window.addEventListener('resize', reescalar);
+
+// ─────────────────────────────────────────────────────────────
+// PANTALLA COMPLETA: Ctrl+L activa/desactiva fullscreen
+// ─────────────────────────────────────────────────────────────
+function togglePantallaCompleta() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+            // Reescalar ahora que la barra desapareció (más espacio)
+            reescalar();
+        }).catch(() => {});
+    } else {
+        document.exitFullscreen().then(reescalar).catch(() => {});
+    }
+}
+
+document.addEventListener('fullscreenchange', reescalar);
+document.addEventListener('webkitfullscreenchange', reescalar);
+
+// ─────────────────────────────────────────────────────────────
+// NAVEGACIÓN POR TECLADO entre canciones
+// ─────────────────────────────────────────────────────────────
+let paginaActual = 0;
+const paginas = document.querySelectorAll('.pagina');
+
+function irAPagina(idx) {
+    if (idx < 0 || idx >= paginas.length) return;
+    paginaActual = idx;
+    paginas[paginaActual].scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Detectar qué página es la más visible en pantalla
+function detectarPaginaVisible() {
+    let mejor = 0, mejorVisible = 0;
+    paginas.forEach((p, i) => {
+        const rect = p.getBoundingClientRect();
+        // Cuántos píxeles del elemento están en la ventana
+        const visible = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+        if (visible > mejorVisible) { mejorVisible = visible; mejor = i; }
+    });
+    paginaActual = mejor;
+}
+
+document.addEventListener('keydown', e => {
+    // Ctrl+L → pantalla completa
+    if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) {
+        e.preventDefault();
+        togglePantallaCompleta();
+        return;
+    }
+
+    // Flechas y PgUp/PgDn → navegar canciones
+    const navKeys = ['ArrowRight', 'ArrowDown', 'PageDown', 'ArrowLeft', 'ArrowUp', 'PageUp'];
+    if (!navKeys.includes(e.key)) return;
+
+    // Solo actuar si no hay un campo de texto enfocado
+    const tag = document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    e.preventDefault();
+    detectarPaginaVisible();
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
+        irAPagina(paginaActual + 1);
+    } else {
+        irAPagina(paginaActual - 1);
+    }
+});
+</script>
 </body>
 </html>

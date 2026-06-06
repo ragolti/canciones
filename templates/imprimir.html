@@ -24,27 +24,56 @@
         /* Barra (solo pantalla) */
         .barra {
             text-align: center;
-            padding: 10px;
+            padding: 8px 16px;
             background: #f5f5f5;
             border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
-        .barra button {
-            font-size: 1rem; padding: 8px 20px; cursor: pointer;
+        .barra button, .barra a {
+            font-size: 0.95rem; padding: 6px 16px; cursor: pointer;
             border: 1px solid #888; border-radius: 8px; background: white;
+            text-decoration: none; color: #111;
         }
+        .barra .ayuda { font-size: 0.75rem; color: #666; width: 100%; text-align: center; }
         @media print { .barra { display: none; } }
+
+        /* Pantalla completa: ocultar barra */
+        :fullscreen .barra,
+        :-webkit-full-screen .barra { display: none !important; }
+
+        .hint-fs {
+            display: none;
+            position: fixed;
+            bottom: 12px;
+            right: 16px;
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            font-size: 0.78rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            z-index: 100;
+            pointer-events: none;
+        }
+        :fullscreen .hint-fs,
+        :-webkit-full-screen .hint-fs { display: block; }
+        @media print { .hint-fs { display: none !important; } }
 
         /* Hoja */
         .hoja {
-            width: 277mm;
-            max-width: 100%;
-            min-height: 195mm;
-            margin: 18px auto;
-            padding: 8mm 11mm;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-shadow: 0 2px 12px rgba(0,0,0,.10);
+            overflow: hidden;
         }
+
+        @media screen {
+            .hoja {
+                width: 100%;
+                padding: 6px 22px 8px;
+            }
+        }
+
         @media print {
             .hoja { border: none; box-shadow: none; margin: 0; padding: 0; width: 100%; }
         }
@@ -55,51 +84,61 @@
             align-items: flex-end;
             justify-content: space-between;
             border-bottom: 2.5px solid #222;
-            padding-bottom: 3.5mm;
-            margin-bottom: 4mm;
+            padding-bottom: 3mm;
+            margin-bottom: 3mm;
+            flex-shrink: 0;
         }
-        .cab-titulo { font-size: 2rem; font-weight: 900; line-height: 1; }
-        .cab-artista { font-size: 0.9rem; color: #666; font-weight: normal; margin-left: 12px; }
+        .cab-titulo { font-size: 1.9rem; font-weight: 900; line-height: 1; }
+        .cab-artista { font-size: 0.88rem; color: #666; font-weight: normal; margin-left: 12px; }
         .cab-tono {
-            font-size: 0.9rem; font-weight: bold;
+            font-size: 0.88rem; font-weight: bold;
             background: #1a1a2e; color: #fff;
             padding: 2px 10px; border-radius: 5px;
+            flex-shrink: 0;
         }
 
         /* Letra */
         .letra {
             columns: 2;
-            column-gap: 16mm;
-            column-fill: balance;   /* distribuye parejo entre las 2 columnas */
+            column-gap: 14mm;
+            column-fill: balance;
             font-family: "Calibri", "Arial", sans-serif;
             font-weight: bold;
-            font-size: 1.35rem;
+            font-size: 1.35rem;   /* JS lo sobreescribe en pantalla */
             line-height: 1.28;
         }
 
-        .ln-vacio   { display: block; height: 0.45em; }
+        /* Tipos de línea — tamaños relativos para escalar con la base */
+        .ln-vacio   { display: block; height: 0.4em; }
         .ln-acorde  {
             display: block; white-space: pre-wrap;
-            font-size: 0.9rem; font-weight: bold;
-            color: #1565c0;             /* azul oscuro — igual a la vista en pantalla */
+            font-size: 0.65em; font-weight: bold;
+            color: #1565c0;
             line-height: 1.35; letter-spacing: 0.03em;
-            margin-top: 0.3em;
+            margin-top: 0.25em;
         }
         .ln-letra   { display: block; white-space: pre-wrap; }
         .ln-seccion {
             display: block; white-space: pre-wrap;
-            font-size: 0.78rem; font-style: italic;
-            font-weight: normal; color: #888; margin-top: 0.4em;
+            font-size: 0.6em; font-style: italic;
+            font-weight: normal; color: #888; margin-top: 0.35em;
         }
     </style>
 </head>
 <body>
     <div class="barra">
         <button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+        <button onclick="togglePantallaCompleta()" title="Ctrl+L">⛶ Pantalla completa</button>
+        <div class="ayuda">
+            <b>Ctrl+L</b> pantalla completa &nbsp;·&nbsp;
+            Tip: activá <b>"Gráficos en segundo plano"</b> al imprimir para los colores.
+        </div>
     </div>
 
-    <div class="hoja">
-        <div class="cab">
+    <div class="hint-fs">Esc para salir de pantalla completa</div>
+
+    <div class="hoja" id="hoja">
+        <div class="cab" id="cab">
             <div>
                 <span class="cab-titulo">{{ cancion['titulo'] }}</span>
                 {% if cancion['artista'] %}
@@ -111,7 +150,7 @@
             {% endif %}
         </div>
 
-        <div class="letra">
+        <div class="letra" id="letra">
             {# Mostrar tono como línea de acorde al inicio si la letra no empieza con acorde #}
             {% if cancion['tono'] %}
                 {% set primera = (cancion['letra'] or '').splitlines() | first | default('') %}
@@ -122,5 +161,65 @@
             {{ cancion['letra'] | letra_html }}
         </div>
     </div>
+
+    <script>
+    // ─────────────────────────────────────────────────────────────
+    // AUTO-ESCALA: agrandar la fuente para llenar la pantalla
+    // ─────────────────────────────────────────────────────────────
+    function escalar() {
+        if (window.matchMedia('print').matches) return;
+
+        const hoja   = document.getElementById('hoja');
+        const cab    = document.getElementById('cab');
+        const bloque = document.getElementById('letra');
+        if (!hoja || !bloque) return;
+
+        const barra = document.querySelector('.barra');
+        const alturaBarra = (barra && barra.offsetHeight) ? barra.offsetHeight : 0;
+        const alturaHoja  = window.innerHeight - alturaBarra - 8;
+
+        hoja.style.height = alturaHoja + 'px';
+
+        const alturaMax = alturaHoja - (cab ? cab.offsetHeight : 0) - 8;
+        if (alturaMax < 40) return;
+
+        // Búsqueda binaria del tamaño óptimo
+        let lo = 0.8, hi = 7.0;
+        for (let i = 0; i < 22; i++) {
+            const mid = (lo + hi) / 2;
+            bloque.style.fontSize = mid + 'rem';
+            if (bloque.offsetHeight <= alturaMax) {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+        bloque.style.fontSize = (Math.floor(lo * 100) / 100) + 'rem';
+    }
+
+    document.fonts.ready.then(escalar);
+    window.addEventListener('resize', escalar);
+
+    // ─────────────────────────────────────────────────────────────
+    // PANTALLA COMPLETA: Ctrl+L
+    // ─────────────────────────────────────────────────────────────
+    function togglePantallaCompleta() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().then(escalar).catch(() => {});
+        } else {
+            document.exitFullscreen().then(escalar).catch(() => {});
+        }
+    }
+
+    document.addEventListener('fullscreenchange', escalar);
+    document.addEventListener('webkitfullscreenchange', escalar);
+
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) {
+            e.preventDefault();
+            togglePantallaCompleta();
+        }
+    });
+    </script>
 </body>
 </html>
