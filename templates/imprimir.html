@@ -164,8 +164,10 @@
 
     <script>
     // ─────────────────────────────────────────────────────────────
-    // AUTO-ESCALA: agrandar la fuente para llenar la pantalla
+    // AUTO-ESCALA con techo de 3.5rem para evitar fuentes ridículas
     // ─────────────────────────────────────────────────────────────
+    const TAM_MAX_ABSOLUTO = 3.5; // rem
+
     function escalar() {
         if (window.matchMedia('print').matches) return;
 
@@ -175,7 +177,7 @@
         if (!hoja || !bloque) return;
 
         const barra = document.querySelector('.barra');
-        const alturaBarra = (barra && barra.offsetHeight) ? barra.offsetHeight : 0;
+        const alturaBarra = (barra && !document.fullscreenElement) ? barra.offsetHeight : 0;
         const alturaHoja  = window.innerHeight - alturaBarra - 8;
 
         hoja.style.height = alturaHoja + 'px';
@@ -188,13 +190,11 @@
         for (let i = 0; i < 22; i++) {
             const mid = (lo + hi) / 2;
             bloque.style.fontSize = mid + 'rem';
-            if (bloque.offsetHeight <= alturaMax) {
-                lo = mid;
-            } else {
-                hi = mid;
-            }
+            if (bloque.offsetHeight <= alturaMax) lo = mid; else hi = mid;
         }
-        bloque.style.fontSize = (Math.floor(lo * 100) / 100) + 'rem';
+        // Aplicar con techo: no más de 3.5rem aunque sobre espacio
+        const tam = Math.min(Math.floor(lo * 100) / 100, TAM_MAX_ABSOLUTO);
+        bloque.style.fontSize = tam + 'rem';
     }
 
     document.fonts.ready.then(escalar);

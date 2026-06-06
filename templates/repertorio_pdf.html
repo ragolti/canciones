@@ -253,49 +253,74 @@
 
 <script>
 // ─────────────────────────────────────────────────────────────
-// AUTO-ESCALA: agranda la fuente para llenar cada página.
-// Usa búsqueda binaria para encontrar el tamaño óptimo.
+// AUTO-ESCALA con tamaño estandarizado por lista.
+//
+// Algoritmo:
+//   1. Para cada canción: encontrar el tamaño MÁXIMO que entra (búsqueda binaria).
+//   2. Calcular la MEDIANA de todos esos tamaños → es el "estándar" de la lista.
+//   3. Cada canción usa min(su máximo, mediana) → canciones con mucha letra se
+//      achican solas; canciones con poca letra no superan al resto.
+//   4. Límite absoluto de 3.5rem para que nunca se vea ridículo.
 // ─────────────────────────────────────────────────────────────
+const TAM_MAX_ABSOLUTO = 3.5; // rem — techo duro independiente de la mediana
+
 function alturaDisponible() {
-    // En pantalla: ventana menos la barra superior
     const barra = document.querySelector('.barra');
-    const alturaBarra = barra ? barra.offsetHeight : 0;
+    const alturaBarra = (barra && !document.fullscreenElement) ? barra.offsetHeight : 0;
     return window.innerHeight - alturaBarra;
 }
 
 function ajustarAlturasPaginas() {
     const h = alturaDisponible();
-    document.querySelectorAll('.pagina').forEach(p => {
-        p.style.height = h + 'px';
-    });
+    document.querySelectorAll('.pagina').forEach(p => { p.style.height = h + 'px'; });
+}
+
+function tamMaxParaPagina(pagina, alturaMax) {
+    const bloque = pagina.querySelector('.letra');
+    if (!bloque || alturaMax < 40) return null;
+    // Búsqueda binaria entre 0.8 y 7rem
+    let lo = 0.8, hi = 7.0;
+    for (let i = 0; i < 22; i++) {
+        const mid = (lo + hi) / 2;
+        bloque.style.fontSize = mid + 'rem';
+        if (bloque.offsetHeight <= alturaMax) lo = mid; else hi = mid;
+    }
+    return Math.floor(lo * 100) / 100;
+}
+
+function mediana(arr) {
+    if (!arr.length) return TAM_MAX_ABSOLUTO;
+    const s = arr.slice().sort((a, b) => a - b);
+    const m = Math.floor(s.length / 2);
+    return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m];
 }
 
 function escalarPaginas() {
     if (window.matchMedia('print').matches) return;
 
-    document.querySelectorAll('.pagina').forEach(pagina => {
-        const bloque = pagina.querySelector('.letra');
-        if (!bloque) return;
+    const todasPaginas = Array.from(document.querySelectorAll('.pagina'));
+    if (!todasPaginas.length) return;
 
+    // Paso 1: calcular el tamaño máximo individual de cada canción
+    const alturaH = alturaDisponible();
+    const tamMaxList = todasPaginas.map(pagina => {
         const cab = pagina.querySelector('.cab');
-        const margen = 8; // px de espacio libre abajo
-        const alturaMax = pagina.clientHeight - (cab ? cab.offsetHeight : 0) - margen;
+        const altMax = alturaH - (cab ? cab.offsetHeight : 0) - 8;
+        return tamMaxParaPagina(pagina, altMax);
+    });
 
-        if (alturaMax < 40) return;
+    // Paso 2: mediana de los tamaños válidos → "tamaño estándar de la lista"
+    const validos = tamMaxList.filter(t => t !== null);
+    let tamEstandar = mediana(validos);
+    tamEstandar = Math.min(tamEstandar, TAM_MAX_ABSOLUTO); // aplicar techo duro
 
-        // Búsqueda binaria: tamaño mínimo 0.8rem, máximo 7rem
-        let lo = 0.8, hi = 7.0;
-        for (let i = 0; i < 22; i++) {
-            const mid = (lo + hi) / 2;
-            bloque.style.fontSize = mid + 'rem';
-            if (bloque.offsetHeight <= alturaMax) {
-                lo = mid;
-            } else {
-                hi = mid;
-            }
-        }
-        // Aplicar el último valor que entra
-        bloque.style.fontSize = (Math.floor(lo * 100) / 100) + 'rem';
+    // Paso 3: aplicar min(propio, estándar) → canciones con mucha letra se achican,
+    //         canciones con poca letra no superan al resto
+    todasPaginas.forEach((pagina, i) => {
+        const bloque = pagina.querySelector('.letra');
+        if (!bloque || tamMaxList[i] === null) return;
+        const tam = Math.min(tamMaxList[i], tamEstandar);
+        bloque.style.fontSize = (Math.floor(tam * 100) / 100) + 'rem';
     });
 }
 
