@@ -49,7 +49,7 @@
         })();
     </script>
 
-    <main>
+    <main class="{{ main_clase | default('') }}">
         {% with mensajes = get_flashed_messages() %}
             {% if mensajes %}
                 {% for mensaje in mensajes %}

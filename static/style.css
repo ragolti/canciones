@@ -117,6 +117,11 @@ main {
     padding: 0 20px;
 }
 
+/* En la página de canción se necesita más ancho para las 2 columnas */
+main.main-cancion {
+    max-width: 1300px;
+}
+
 footer {
     text-align: center;
     color: var(--texto-suave);
@@ -974,27 +979,46 @@ footer {
    ================================================================ */
 
 /* Contenedor principal en la vista de canción */
+/* ──────────────────────────────────────────────────────────────
+   VISTA DE CANCIÓN — letra con acordes, 2 columnas, texto grande
+   ────────────────────────────────────────────────────────────── */
+
+/* Cuando estamos en la página de canción, el contenedor principal
+   se amplía para dar espacio a las 2 columnas de letra. */
+.detalle {
+    max-width: 100%;    /* el article sí ocupa todo el ancho disponible */
+}
+
+/* Área de la letra: 2 columnas, texto grande, igual al PDF de referencia */
 .letra-bloque {
     font-family: "Calibri", "Segoe UI", "Arial", sans-serif;
-    font-size: 1.05rem;   /* ajustable con los botones A+ / A− */
-    line-height: 1.45;
-    white-space: pre-wrap;
+    font-size: 1.25rem;        /* tamaño base, ajustable con A+/A− */
+    font-weight: 700;
+    line-height: 1.35;
     word-break: break-word;
-    margin: 14px 0 10px;
+    margin: 16px 0 12px;
+    /* 2 columnas en pantallas anchas */
+    columns: 2;
+    column-gap: 8%;
+    column-fill: auto;         /* llenar col izq primero, luego col der */
+}
+/* En pantallas chicas (celular vertical) = 1 columna */
+@media (max-width: 680px) {
+    .letra-bloque { columns: 1; font-size: 1.1rem; }
 }
 
-/* Líneas de acordes: color rojo ladrillo, un poco más chico */
+/* Líneas de acordes: azul oscuro, un poco más chico que la letra */
 .ln-acorde {
     display: block;
-    font-size: 0.78em;         /* relativo al contenedor, siempre más chico */
+    font-size: 0.72em;         /* siempre más chico que el contenedor */
     font-weight: 700;
-    color: #c0392b;            /* rojo ladrillo */
+    color: #1565c0;            /* azul oscuro — igual al PDF de referencia */
     letter-spacing: 0.04em;
-    margin-top: 0.35em;
+    margin-top: 0.4em;
     white-space: pre-wrap;
 }
 
-/* Líneas de letra: igual al contenedor */
+/* Líneas de letra: tamaño del contenedor */
 .ln-letra {
     display: block;
     font-weight: 700;
@@ -1004,7 +1028,7 @@ footer {
 /* Indicaciones de sección: (Coro), [Estrofa], etc. */
 .ln-seccion {
     display: block;
-    font-size: 0.78em;
+    font-size: 0.72em;
     font-style: italic;
     font-weight: 400;
     color: #888;
@@ -1015,12 +1039,12 @@ footer {
 /* Líneas vacías: espacio entre estrofas */
 .ln-vacio {
     display: block;
-    height: 0.55em;
+    height: 0.5em;
 }
 
 /* Controles de tamaño A+ / A− */
 .letra-controles {
-    margin: 6px 0 16px;
+    margin: 4px 0 18px;
     display: flex;
     gap: 6px;
     align-items: center;

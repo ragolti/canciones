@@ -223,7 +223,8 @@ def ver_cancion(cancion_id):
     datos = _cancion_transpuesta(cancion, semitonos)
     apariciones = database.fechas_apariciones(cancion_id)
     return render_template("cancion.html", cancion=datos, semitonos=semitonos,
-                           apariciones=apariciones)
+                           apariciones=apariciones,
+                           main_clase="main-cancion")   # amplía el ancho para 2 columnas
 
 
 @app.route("/ocultar/<int:cancion_id>", methods=["POST"])
