@@ -70,6 +70,15 @@
 
     {# ── Vista de la letra: acordes en color, letra grande ── #}
     <div class="letra-bloque" id="letra-bloque">
+        {# Mostrar el tono como primera línea de acorde (en azul),
+           igual que en el PDF de referencia. Si la primera línea de
+           la letra ya es un acorde no lo repetimos. #}
+        {% if cancion['tono'] %}
+            {% set primera_linea = (cancion['letra'] or '').splitlines() | first | default('') %}
+            {% if not (primera_linea | es_linea_acorde) %}
+                <span class="ln-acorde">{{ cancion['tono'] }}</span>
+            {% endif %}
+        {% endif %}
         {{ cancion['letra'] | letra_html }}
     </div>
 

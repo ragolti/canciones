@@ -123,7 +123,7 @@
         .letra {
             columns: 2;
             column-gap: 16mm;
-            column-fill: auto;          /* llena col izquierda primero */
+            column-fill: balance;       /* distribuye parejo entre las 2 columnas */
             font-family: "Calibri", "Arial", sans-serif;
             font-weight: bold;
             font-size: 1.35rem;         /* ≈ 19-20pt en A4 */
@@ -200,7 +200,16 @@
 
             {# ── Letra con acordes en color ── #}
             {% if cancion['letra'] %}
-                <div class="letra">{{ cancion['letra'] | letra_html }}</div>
+                <div class="letra">
+                    {# Mostrar tono como línea de acorde al inicio si la letra no empieza con acorde #}
+                    {% if cancion['tono'] %}
+                        {% set primera = cancion['letra'].splitlines() | first | default('') %}
+                        {% if not (primera | es_linea_acorde) %}
+                            <span class="ln-acorde">{{ cancion['tono'] }}</span>
+                        {% endif %}
+                    {% endif %}
+                    {{ cancion['letra'] | letra_html }}
+                </div>
             {% else %}
                 <div class="vacia">— sin letra —</div>
             {% endif %}

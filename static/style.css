@@ -997,10 +997,12 @@ footer {
     line-height: 1.35;
     word-break: break-word;
     margin: 16px 0 12px;
-    /* 2 columnas en pantallas anchas */
+    /* 2 columnas en pantallas anchas.
+       column-fill: balance = el navegador distribuye el contenido
+       equitativamente entre las 2 columnas (sin necesitar altura fija). */
     columns: 2;
     column-gap: 8%;
-    column-fill: auto;         /* llenar col izq primero, luego col der */
+    column-fill: balance;
 }
 /* En pantallas chicas (celular vertical) = 1 columna */
 @media (max-width: 680px) {
