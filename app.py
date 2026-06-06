@@ -561,7 +561,7 @@ def admin_compactar_aplicar():
                 continue
             nueva, n = _compactar.compactar_letra(c["letra"] or "")
             if n > 0 or nueva != (c["letra"] or ""):
-                database.editar_cancion(
+                database.actualizar_cancion(
                     int(cid),
                     titulo=c["titulo"],
                     artista=c["artista"] or "",
