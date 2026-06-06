@@ -27,6 +27,7 @@
                 <a href="{{ url_for('sugerencias') }}" class="btn">💡 Sugerencias</a>
                 {% if usuario_actual.rol == 'admin' %}
                     <a href="{{ url_for('revisar') }}" class="btn">📋 Revisar{% if pendientes %} <span class="rep-badge">{{ pendientes }}</span>{% endif %}</a>
+                    <a href="{{ url_for('admin_compactar') }}" class="btn" title="Compactar letras repetidas">🗜️</a>
                 {% endif %}
                 <a href="{{ url_for('nueva_cancion') }}" class="btn btn-nueva">+ Nueva canción</a>
                 <span class="usuario-chip">👤 {{ usuario_actual.usuario }}</span>

@@ -25,6 +25,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 import database
 import acordes
+import compactar as _compactar
 from markupsafe import Markup, escape as _escape
 
 app = Flask(__name__)
@@ -516,6 +517,69 @@ def admin_listar():
             for c in filas
         ],
     }
+
+
+@app.route("/admin/compactar")
+@admin_required
+def admin_compactar():
+    """Página para detectar y compactar secciones repetidas en letras."""
+    canciones = database.listar_canciones(solo_aprobadas=False, con_letra=True)
+    propuestas = _compactar.analizar_todas(canciones)
+    return render_template("admin_compactar.html", propuestas=propuestas)
+
+
+@app.route("/admin/compactar/preview/<int:cancion_id>")
+@admin_required
+def admin_compactar_preview(cancion_id):
+    """Devuelve JSON con la letra original y la compactada para comparar."""
+    c = database.obtener_cancion(cancion_id)
+    if not c:
+        return {"ok": False, "error": "No encontrada"}, 404
+    nueva, n = _compactar.compactar_letra(c["letra"] or "")
+    return {
+        "ok": True,
+        "titulo": c["titulo"],
+        "letra_orig": c["letra"] or "",
+        "letra_nueva": nueva,
+        "n_comprimidos": n,
+        "ahorro": len(c["letra"] or "") - len(nueva),
+    }
+
+
+@app.route("/admin/compactar/aplicar", methods=["POST"])
+@admin_required
+def admin_compactar_aplicar():
+    """Aplica la compactación a las canciones indicadas (lista de IDs en JSON)."""
+    datos = request.get_json(silent=True) or {}
+    ids = datos.get("ids") or []
+    resultados = []
+    for cid in ids:
+        try:
+            c = database.obtener_cancion(int(cid))
+            if not c:
+                resultados.append({"id": cid, "ok": False, "error": "No encontrada"})
+                continue
+            nueva, n = _compactar.compactar_letra(c["letra"] or "")
+            if n > 0 or nueva != (c["letra"] or ""):
+                database.editar_cancion(
+                    int(cid),
+                    titulo=c["titulo"],
+                    artista=c["artista"] or "",
+                    tono=c["tono"] or "",
+                    etiquetas=c["etiquetas"] or "",
+                    letra=nueva,
+                    categoria=c.get("categoria") or "",
+                    youtube=c.get("youtube") or "",
+                    estado=c.get("estado") or "aprobada",
+                    anio=c.get("anio"),
+                )
+                resultados.append({"id": cid, "ok": True, "n": n, "ahorro": len(c["letra"] or "") - len(nueva)})
+            else:
+                resultados.append({"id": cid, "ok": True, "n": 0, "ahorro": 0})
+        except Exception as e:
+            resultados.append({"id": cid, "ok": False, "error": str(e)})
+    total_ok = sum(1 for r in resultados if r["ok"] and r.get("n", 0) > 0)
+    return {"ok": True, "resultados": resultados, "total_modificadas": total_ok}
 
 
 @app.route("/admin/borrar", methods=["POST"])

@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block titulo %}Compactar letras · Admin{% endblock %}
+{% block contenido %}
+
+<h1>🗜️ Compactar letras repetidas</h1>
+<p class="sub">
+    Detecta canciones donde el estribillo, coro u otras secciones están escritas
+    completas varias veces, y las reemplaza por una sola etiqueta <code>(Estribillo)</code>,
+    <code>(Coro)</code>, etc.
+</p>
+
+{% if propuestas %}
+<div class="comp-barra">
+    <strong>{{ propuestas|length }} canciones</strong> con secciones repetidas detectadas.
+    <button class="btn btn-nueva" id="btn-aplicar-todos" onclick="aplicarTodos()">
+        ✅ Aplicar a todos
+    </button>
+    <button class="btn btn-gris" onclick="seleccionarTodos(true)">☑ Seleccionar todos</button>
+    <button class="btn btn-gris" onclick="seleccionarTodos(false)">☐ Ninguno</button>
+    <button class="btn btn-nueva" id="btn-aplicar-sel" onclick="aplicarSeleccion()">
+        ✅ Aplicar selección
+    </button>
+    <span id="comp-estado" class="comp-estado"></span>
+</div>
+
+<div id="comp-progreso" class="comp-progreso" style="display:none"></div>
+
+<table class="comp-tabla">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Canción</th>
+            <th>Secciones<br>comprimidas</th>
+            <th>Ahorro</th>
+            <th>Vista previa</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in propuestas %}
+        <tr id="fila-{{ p.id }}" class="comp-fila">
+            <td><input type="checkbox" class="comp-check" value="{{ p.id }}" checked></td>
+            <td>
+                <strong>{{ p.titulo }}</strong>
+                {% if p.artista %}<br><small style="color:var(--texto-suave)">{{ p.artista }}</small>{% endif %}
+            </td>
+            <td class="comp-num">{{ p.n_comprimidos }}</td>
+            <td class="comp-num">−{{ p.ahorro }} car.</td>
+            <td>
+                <button class="btn btn-chico" onclick="verPreview({{ p.id }}, this)">
+                    👁 Ver
+                </button>
+            </td>
+            <td id="estado-{{ p.id }}" class="comp-estado-fila">—</td>
+        </tr>
+        <tr id="preview-{{ p.id }}" style="display:none">
+            <td colspan="6">
+                <div class="comp-preview" id="preview-contenido-{{ p.id }}">
+                    Cargando…
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% else %}
+<div class="vacio">
+    <p>🎉 No se detectaron secciones repetidas en ninguna canción. ¡Todo limpio!</p>
+    <a href="{{ url_for('inicio') }}" class="btn btn-gris">← Volver al cancionero</a>
+</div>
+{% endif %}
+
+<style>
+.sub { color: var(--texto-suave); margin-top: -10px; margin-bottom: 20px; }
+
+.comp-barra {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--gris-borde);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+
+.comp-progreso {
+    background: var(--card);
+    border: 1px solid var(--gris-borde);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    color: var(--texto-suave);
+}
+
+.comp-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+}
+.comp-tabla th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--gris-borde);
+    color: var(--texto-suave);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.comp-tabla td { padding: 8px 12px; border-bottom: 1px solid var(--gris-borde); }
+.comp-fila:hover { background: var(--card); }
+.comp-num { text-align: center; font-weight: bold; color: var(--color-principal); }
+.comp-estado-fila { font-size: 0.82rem; }
+.comp-ok    { color: #4caf50; }
+.comp-error { color: var(--rojo); }
+
+/* Vista previa: dos columnas lado a lado */
+.comp-preview {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 12px 0 16px;
+}
+@media (max-width: 700px) { .comp-preview { grid-template-columns: 1fr; } }
+.comp-col { font-size: 0.82rem; }
+.comp-col h4 { margin: 0 0 8px; font-size: 0.85rem; color: var(--texto-suave); }
+.comp-col pre {
+    white-space: pre-wrap;
+    background: var(--gris-fondo);
+    border: 1px solid var(--gris-borde);
+    border-radius: 6px;
+    padding: 10px 12px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: inherit;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+.comp-estado { font-size: 0.85rem; margin-left: 8px; }
+</style>
+
+<script>
+// ── Vista previa de una canción ──────────────────────────────────────────────
+function verPreview(id, btn) {
+    const fila = document.getElementById('preview-' + id);
+    const contenido = document.getElementById('preview-contenido-' + id);
+    if (fila.style.display !== 'none') {
+        fila.style.display = 'none';
+        btn.textContent = '👁 Ver';
+        return;
+    }
+    btn.textContent = '⏳';
+    fetch('/admin/compactar/preview/' + id)
+        .then(r => r.json())
+        .then(d => {
+            if (!d.ok) { contenido.innerHTML = '<em>Error: ' + d.error + '</em>'; return; }
+            contenido.innerHTML =
+                '<div class="comp-col">' +
+                '<h4>📄 Original (' + d.letra_orig.length + ' car.)</h4>' +
+                '<pre>' + escaparH(d.letra_orig) + '</pre></div>' +
+                '<div class="comp-col">' +
+                '<h4>✅ Propuesta (' + d.letra_nueva.length + ' car., −' +
+                d.ahorro + ')</h4>' +
+                '<pre>' + escaparH(d.letra_nueva) + '</pre></div>';
+            fila.style.display = '';
+            btn.textContent = '▲ Cerrar';
+        })
+        .catch(() => { contenido.innerHTML = '<em>Error de red.</em>'; btn.textContent = '👁 Ver'; });
+}
+
+function escaparH(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Selección masiva ──────────────────────────────────────────────────────────
+function seleccionarTodos(val) {
+    document.querySelectorAll('.comp-check').forEach(cb => cb.checked = val);
+}
+
+// ── Aplicar todos ─────────────────────────────────────────────────────────────
+function aplicarTodos() {
+    const ids = Array.from(document.querySelectorAll('.comp-check')).map(cb => parseInt(cb.value));
+    if (!ids.length) return;
+    if (!confirm('¿Aplicar la compactación a las ' + ids.length + ' canciones detectadas? Esta acción edita sus letras.')) return;
+    aplicar(ids);
+}
+
+// ── Aplicar selección ─────────────────────────────────────────────────────────
+function aplicarSeleccion() {
+    const ids = Array.from(document.querySelectorAll('.comp-check:checked')).map(cb => parseInt(cb.value));
+    if (!ids.length) { alert('Seleccioná al menos una canción.'); return; }
+    if (!confirm('¿Aplicar la compactación a ' + ids.length + ' canción(es) seleccionada(s)?')) return;
+    aplicar(ids);
+}
+
+// ── Llamada al servidor ────────────────────────────────────────────────────────
+function aplicar(ids) {
+    const progreso = document.getElementById('comp-progreso');
+    progreso.style.display = '';
+    progreso.textContent = '⏳ Aplicando cambios a ' + ids.length + ' canciones…';
+    document.getElementById('btn-aplicar-todos').disabled = true;
+    document.getElementById('btn-aplicar-sel').disabled = true;
+
+    fetch('/admin/compactar/aplicar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: ids }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (!d.ok) { progreso.textContent = '❌ Error: ' + (d.error || 'desconocido'); return; }
+
+        // Actualizar estado por fila
+        d.resultados.forEach(function(r) {
+            const celda = document.getElementById('estado-' + r.id);
+            if (!celda) return;
+            if (!r.ok) {
+                celda.innerHTML = '<span class="comp-error">❌ ' + (r.error || '') + '</span>';
+            } else if (r.n > 0) {
+                celda.innerHTML = '<span class="comp-ok">✅ −' + r.ahorro + ' car.</span>';
+            } else {
+                celda.innerHTML = '<span style="color:var(--texto-suave)">Sin cambios</span>';
+            }
+        });
+
+        progreso.innerHTML = '✅ Listo. <strong>' + d.total_modificadas + '</strong> canciones modificadas.';
+        document.getElementById('btn-aplicar-todos').disabled = false;
+        document.getElementById('btn-aplicar-sel').disabled = false;
+    })
+    .catch(err => {
+        progreso.textContent = '❌ Error de red: ' + err;
+        document.getElementById('btn-aplicar-todos').disabled = false;
+        document.getElementById('btn-aplicar-sel').disabled = false;
+    });
+}
+</script>
+
+{% endblock %}
