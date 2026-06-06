@@ -34,6 +34,15 @@ USAR_POSTGRES = bool(DATABASE_URL)
 if USAR_POSTGRES:
     import psycopg2
     import psycopg2.extras
+    # Errores que indican que la conexión se cayó (para reconectar y reintentar).
+    ERRORES_CONEXION = (psycopg2.OperationalError, psycopg2.InterfaceError)
+else:
+    ERRORES_CONEXION = ()
+
+# Conexión Postgres persistente y reutilizada entre pedidos (gunicorn --workers 1
+# atiende un pedido a la vez, así que es seguro). Evita abrir una conexión nueva en
+# cada consulta -> páginas mucho más rápidas. Si se cae, se reconecta sola.
+_pg_conn = None
 
 # La base SQLite se guarda en la misma carpeta que este archivo (uso local).
 RUTA_DB = Path(__file__).parent / "canciones.db"
@@ -53,9 +62,32 @@ SIN_CATEGORIA = "Sin categoría"
 
 
 def conectar():
-    """Abre una conexión a la base de datos (Postgres o SQLite)."""
+    """Devuelve la conexión a la base de datos.
+
+    - Postgres (online): reutiliza la misma conexión persistente (_pg_conn).
+      Si se cayó, la reabre automáticamente (reconexión transparente).
+      Esto evita abrir una conexión nueva en cada consulta, que es lo que
+      causaba la lentitud (Neon tarda ~1-2 seg en establecer cada conexión).
+    - SQLite (local): abre una conexión nueva cada vez (es instantáneo porque
+      es un archivo local; no tiene sentido reutilizarla).
+    """
+    global _pg_conn
     if USAR_POSTGRES:
-        return psycopg2.connect(DATABASE_URL)
+        # Verificar si la conexión existente sigue viva.
+        try:
+            if _pg_conn is None or _pg_conn.closed:
+                raise psycopg2.OperationalError("sin conexión")
+            _pg_conn.cursor().execute("SELECT 1")   # ping liviano
+        except Exception:
+            # La conexión murió (timeout de Neon, reinicio, etc.) → reconectar.
+            try:
+                if _pg_conn:
+                    _pg_conn.close()
+            except Exception:
+                pass
+            _pg_conn = psycopg2.connect(DATABASE_URL)
+        return _pg_conn
+    # SQLite local
     conexion = sqlite3.connect(RUTA_DB)
     conexion.row_factory = sqlite3.Row
     return conexion
@@ -95,8 +127,36 @@ def _ejecutar(sql, params=(), fetch=None):
                 resultado = cur.lastrowid
         con.commit()
         return resultado
+    except ERRORES_CONEXION:
+        # La conexión se cayó durante la ejecución → forzar reconexión y reintentar.
+        global _pg_conn
+        try:
+            if _pg_conn:
+                _pg_conn.close()
+        except Exception:
+            pass
+        _pg_conn = None
+        # Segundo intento con conexión fresca.
+        con2 = conectar()
+        if USAR_POSTGRES:
+            cur2 = con2.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        else:
+            cur2 = con2.cursor()
+        cur2.execute(_placeholders(sql), params)
+        resultado = None
+        if fetch == "one":
+            resultado = cur2.fetchone()
+        elif fetch == "all":
+            resultado = cur2.fetchall()
+        elif fetch == "id":
+            fila = cur2.fetchone()
+            resultado = fila["id"] if fila else None
+        con2.commit()
+        return resultado
     finally:
-        con.close()
+        # Solo cerrar en SQLite (local); en Postgres la conexión se reutiliza.
+        if not USAR_POSTGRES:
+            con.close()
 
 
 def inicializar():
@@ -249,6 +309,12 @@ def inicializar():
         )
     _ejecutar("CREATE UNIQUE INDEX IF NOT EXISTS ux_canciones_titulo ON canciones (titulo)")
 
+    # Índices adicionales para acelerar búsquedas frecuentes.
+    _ejecutar("CREATE INDEX IF NOT EXISTS ix_canciones_artista   ON canciones (artista)")
+    _ejecutar("CREATE INDEX IF NOT EXISTS ix_canciones_categoria ON canciones (categoria)")
+    _ejecutar("CREATE INDEX IF NOT EXISTS ix_canciones_estado    ON canciones (estado)")
+    _ejecutar("CREATE INDEX IF NOT EXISTS ix_conocidas_usuario   ON conocidas (usuario_id)")
+
 
 def crear_varias(filas):
     """Inserta muchas canciones en UNA sola conexión (rápido y eficiente).
@@ -283,16 +349,30 @@ def contar_canciones():
     return fila["n"] if fila else 0
 
 
-def listar_canciones(busqueda="", solo_aprobadas=True):
+def listar_canciones(busqueda="", solo_aprobadas=True, con_letra=False):
     """Devuelve canciones ordenadas por título.
 
     Si 'solo_aprobadas' es True, muestra solo las aprobadas (vista pública; las
     ocultas y pendientes no aparecen).
     La búsqueda funciona con o sin acentos (insensible a tildes y mayúsculas).
+
+    con_letra=False (por defecto): NO trae la columna 'letra'. Como la letra puede
+      pesar mucho (miles de caracteres por canción), omitirla hace que la página
+      principal cargue mucho más rápido. Solo se busca en letra si hay búsqueda activa.
+    con_letra=True: trae todos los campos (para rutas que necesitan la letra completa).
     """
     orden = "LOWER(titulo)" if USAR_POSTGRES else "titulo COLLATE NOCASE"
     where = "WHERE (estado = 'aprobada' OR estado IS NULL)" if solo_aprobadas else ""
-    filas = _ejecutar(f"SELECT * FROM canciones {where} ORDER BY {orden}", fetch="all") or []
+
+    # Si hay búsqueda siempre traemos la letra para poder buscar en ella.
+    necesita_letra = con_letra or bool(busqueda)
+    if necesita_letra:
+        cols = "*"
+    else:
+        # Sin búsqueda: solo columnas que se usan en la lista (mucho menos datos).
+        cols = "id, titulo, artista, tono, etiquetas, categoria, youtube, estado, funcion, tempo, anio, creada_en, modificada_en"
+
+    filas = _ejecutar(f"SELECT {cols} FROM canciones {where} ORDER BY {orden}", fetch="all") or []
 
     if busqueda:
         q = sin_acentos(busqueda)
