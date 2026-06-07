@@ -22,7 +22,8 @@
                 <option value="amanecer">🌅 Amanecer</option>
                 <option value="violeta">🎨 Violeta</option>
             </select>
-            <a href="{{ url_for('historial') }}" class="btn" title="Ver listas guardadas">📅 Listas</a>
+            <a href="{{ url_for('canciones') }}" class="btn" title="Canciones">🎵 Canciones</a>
+        <a href="{{ url_for('historial') }}" class="btn" title="Ver listas guardadas">📅 Listas</a>
             {% if usuario_actual %}
                 <a href="{{ url_for('sugerencias') }}" class="btn">💡 Sugerencias</a>
                 {% if usuario_actual.rol == 'admin' %}
@@ -125,5 +126,51 @@
     </aside>
 
     <script src="{{ url_for('static', filename='repertorio.js') }}"></script>
+
+    <!-- Bottom Navigation (solo en móvil) -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <a href="{{ url_for('inicio') }}" class="bnav-item {% if request.endpoint == 'inicio' %}activo{% endif %}">
+            <span class="bnav-icon">🏠</span>
+            <span class="bnav-label">Inicio</span>
+        </a>
+        <a href="{{ url_for('canciones') }}" class="bnav-item {% if request.endpoint == 'canciones' %}activo{% endif %}">
+            <span class="bnav-icon">🎵</span>
+            <span class="bnav-label">Canciones</span>
+        </a>
+        <button class="bnav-item bnav-rep" onclick="repToggle()">
+            <span class="bnav-icon">🎶</span>
+            <span class="bnav-label">Lista <span id="bnav-count" class="bnav-badge" style="display:none">0</span></span>
+        </button>
+        <a href="{{ url_for('historial') }}" class="bnav-item {% if request.endpoint == 'historial' %}activo{% endif %}">
+            <span class="bnav-icon">📅</span>
+            <span class="bnav-label">Listas</span>
+        </a>
+        <a href="{{ url_for('login') if not usuario_actual else url_for('sugerencias') }}"
+           class="bnav-item {% if request.endpoint in ['login', 'sugerencias'] %}activo{% endif %}">
+            <span class="bnav-icon">{% if usuario_actual %}💡{% else %}👤{% endif %}</span>
+            <span class="bnav-label">{% if usuario_actual %}Ideas{% else %}Entrar{% endif %}</span>
+        </a>
+    </nav>
+
+    <script>
+    // Sincronizar badge del bottom nav con el contador del repertorio flotante
+    (function() {
+        function syncBnavCount() {
+            var rep = document.getElementById('rep-contador');
+            var bnav = document.getElementById('bnav-count');
+            if (!rep || !bnav) return;
+            var n = parseInt(rep.textContent) || 0;
+            bnav.style.display = n > 0 ? 'inline' : 'none';
+            bnav.textContent = n;
+        }
+        // Observar cambios en el badge del repertorio flotante
+        var repC = document.getElementById('rep-contador');
+        if (repC) {
+            var obs = new MutationObserver(syncBnavCount);
+            obs.observe(repC, { childList: true, characterData: true, subtree: true });
+        }
+        syncBnavCount();
+    })();
+    </script>
 </body>
 </html>

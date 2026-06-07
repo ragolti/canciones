@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block titulo %}Adoremos{% endblock %}
+
+{% block contenido %}
+<!-- Saludo personalizado -->
+<div class="home-saludo">
+    <div class="home-saludo-texto">
+        <h2>{% if usuario_actual %}¡Hola, {{ usuario_actual.usuario }}! 👋{% else %}¡Hola! 👋{% endif %}</h2>
+        <p>{{ total_canciones }} canciones · {% if usuario_actual %}{{ total_conocidas }} conocidas{% else %}cancionero de alabanza{% endif %}</p>
+    </div>
+</div>
+
+<!-- Búsqueda rápida -->
+<a href="{{ url_for('canciones') }}" class="home-busqueda">
+    <span class="home-busqueda-icon">🔍</span>
+    <span class="home-busqueda-placeholder">Buscar por título, artista o letra…</span>
+    <span class="home-busqueda-kbd">Buscar →</span>
+</a>
+
+<!-- ── SECCIÓN PRINCIPAL ── -->
+<div class="home-seccion-titulo">Principal</div>
+<div class="home-grid">
+
+    <!-- Hero: Canciones -->
+    <a href="{{ url_for('canciones') }}" class="home-tile home-tile-hero c-canciones">
+        <span class="home-tile-badge">{{ total_canciones }}</span>
+        <span class="home-tile-icon">🎵</span>
+        <div class="home-tile-body">
+            <div class="home-tile-titulo">Canciones</div>
+            <div class="home-tile-sub">Explorar, buscar, filtrar por grupo o función</div>
+        </div>
+    </a>
+
+    <!-- Repertorio -->
+    <button class="home-tile c-repertorio" onclick="repToggle(); return false;">
+        <span class="home-tile-icon">🎶</span>
+        <div class="home-tile-titulo">Repertorio</div>
+        <div class="home-tile-sub">Lista del evento de hoy</div>
+        <span class="home-tile-arrow">→</span>
+    </button>
+
+    <!-- Listas -->
+    <a href="{{ url_for('historial') }}" class="home-tile c-listas">
+        <span class="home-tile-icon">📅</span>
+        <div class="home-tile-titulo">Listas</div>
+        <div class="home-tile-sub">Futuras e históricas</div>
+        {% if total_listas %}<span class="home-tile-badge">{{ total_listas }}</span>{% endif %}
+    </a>
+
+</div>
+
+<!-- ── SECCIÓN EXPLORAR ── -->
+<div class="home-seccion-titulo">Explorar</div>
+<div class="home-grid home-grid-2">
+
+    <a href="{{ url_for('sugerencias') }}" class="home-tile c-sugerencias">
+        <span class="home-tile-icon">💡</span>
+        <div class="home-tile-titulo">Sugerencias</div>
+        <div class="home-tile-sub">¿Qué cantar hoy?</div>
+    </a>
+
+    {% if usuario_actual %}
+    <a href="{{ url_for('canciones') }}?conocidas=si" class="home-tile c-conocidas">
+        <span class="home-tile-icon">⭐</span>
+        <div class="home-tile-titulo">Conocidas</div>
+        <div class="home-tile-sub">Las que ya toqué</div>
+        {% if total_conocidas %}<span class="home-tile-badge">{{ total_conocidas }}</span>{% endif %}
+    </a>
+    {% else %}
+    <a href="{{ url_for('login') }}" class="home-tile c-conocidas">
+        <span class="home-tile-icon">👤</span>
+        <div class="home-tile-titulo">Iniciar sesión</div>
+        <div class="home-tile-sub">Para guardar favoritas</div>
+    </a>
+    {% endif %}
+
+    <a href="{{ url_for('canciones') }}#indice" class="home-tile c-buscar">
+        <span class="home-tile-icon">📑</span>
+        <div class="home-tile-titulo">Índice</div>
+        <div class="home-tile-sub">Ver todas por A-Z</div>
+    </a>
+
+    <a href="{{ url_for('historial') }}?tipo=futura" class="home-tile c-futuras">
+        <span class="home-tile-icon">🗓️</span>
+        <div class="home-tile-titulo">Próximos eventos</div>
+        <div class="home-tile-sub">Listas futuras</div>
+    </a>
+
+</div>
+
+<!-- ── ACCIONES RÁPIDAS ── -->
+{% if usuario_actual %}
+<div class="home-seccion-titulo">Acciones rápidas</div>
+<div class="home-grid home-grid-3">
+    <a href="{{ url_for('nueva_cancion') }}" class="home-tile home-tile-sm c-nueva">
+        <span class="home-tile-icon">➕</span>
+        <div class="home-tile-titulo">Nueva canción</div>
+    </a>
+    {% if usuario_actual.rol == 'admin' %}
+    <a href="{{ url_for('revisar') }}" class="home-tile home-tile-sm c-revisar">
+        <span class="home-tile-icon">📋</span>
+        <div class="home-tile-titulo">Revisar{% if pendientes %} ({{ pendientes }}){% endif %}</div>
+    </a>
+    <a href="{{ url_for('admin_compactar') }}" class="home-tile home-tile-sm c-admin">
+        <span class="home-tile-icon">⚙️</span>
+        <div class="home-tile-titulo">Admin</div>
+    </a>
+    {% else %}
+    <a href="{{ url_for('sugerencias') }}" class="home-tile home-tile-sm c-sugerencias">
+        <span class="home-tile-icon">💡</span>
+        <div class="home-tile-titulo">Sugerencias</div>
+    </a>
+    <a href="{{ url_for('historial') }}" class="home-tile home-tile-sm c-listas">
+        <span class="home-tile-icon">📅</span>
+        <div class="home-tile-titulo">Mis listas</div>
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ── LISTAS RECIENTES ── -->
+{% if listas_recientes %}
+<div class="home-seccion-titulo">Listas recientes</div>
+<div class="home-recientes">
+    {% for lista in listas_recientes %}
+    <a href="{{ url_for('ver_lista', lista_id=lista['id']) }}" class="home-reciente">
+        <span class="home-reciente-icon" style="background:{% if loop.index == 1 %}linear-gradient(135deg,#6c63ff,#4e46e5){% elif loop.index == 2 %}linear-gradient(135deg,#10b981,#059669){% else %}linear-gradient(135deg,#f59e0b,#d97706){% endif %}">📋</span>
+        <div class="home-reciente-texto">
+            <strong>{{ lista['nombre'] or 'Lista sin nombre' }}</strong>
+            <span>{{ lista['usuario'] }}{% if lista['tipo'] == 'futura' %} · 🗓️ Futura{% endif %}</span>
+        </div>
+        <span class="home-reciente-flecha">›</span>
+    </a>
+    {% endfor %}
+    <a href="{{ url_for('historial') }}" class="home-ver-todas">Ver todas las listas →</a>
+</div>
+{% endif %}
+
+{% endblock %}
