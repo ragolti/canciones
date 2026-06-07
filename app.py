@@ -170,36 +170,52 @@ except Exception as e:
 
 @app.route("/")
 def inicio():
-    """Página principal: canciones agrupadas por categoría, con buscador."""
+    """Pantalla de inicio: dashboard con tiles para navegar la app."""
+    u = usuario_actual()
+    total_canciones = database.contar_canciones()
+    total_conocidas = database.contar_conocidas(u["id"]) if u else 0
+    listas_recientes = database.listar_listas(usuario=u["usuario"] if u else None) or []
+    listas_recientes = list(listas_recientes)[:3]
+    total_listas = len(database.listar_listas() or [])
+    return render_template(
+        "home.html",
+        total_canciones=total_canciones,
+        total_conocidas=total_conocidas,
+        listas_recientes=listas_recientes,
+        total_listas=total_listas,
+    )
+
+
+@app.route("/canciones")
+def canciones():
+    """Listado completo de canciones agrupadas por categoría, con buscador."""
     busqueda = request.args.get("q", "").strip()
     f_grupo = request.args.get("grupo", "").strip()
     f_funcion = request.args.get("funcion", "").strip()
     f_tempo = request.args.get("tempo", "").strip()
     f_conocidas = request.args.get("conocidas", "").strip()  # "" | "si" | "no"
 
-    canciones = database.listar_canciones(busqueda)
-    # Filtros por desplegable (estilo/grupo, función, tempo).
+    canciones_lista = database.listar_canciones(busqueda)
     if f_grupo:
-        canciones = [c for c in canciones if (c["categoria"] or "Sin categoría") == f_grupo]
+        canciones_lista = [c for c in canciones_lista if (c["categoria"] or "Sin categoría") == f_grupo]
     if f_funcion:
-        canciones = [c for c in canciones if (c["funcion"] or "") == f_funcion]
+        canciones_lista = [c for c in canciones_lista if (c["funcion"] or "") == f_funcion]
     if f_tempo:
-        canciones = [c for c in canciones if (c["tempo"] or "") == f_tempo]
+        canciones_lista = [c for c in canciones_lista if (c["tempo"] or "") == f_tempo]
 
-    # Conjunto de canciones que el usuario marcó como "conocidas" (ya las tocó).
     u = usuario_actual()
     conocidas = database.ids_conocidas(u["id"]) if u else set()
     if u and f_conocidas == "si":
-        canciones = [c for c in canciones if c["id"] in conocidas]
+        canciones_lista = [c for c in canciones_lista if c["id"] in conocidas]
     elif u and f_conocidas == "no":
-        canciones = [c for c in canciones if c["id"] not in conocidas]
+        canciones_lista = [c for c in canciones_lista if c["id"] not in conocidas]
 
-    grupos = database.agrupar_por_categoria(canciones)
+    grupos = database.agrupar_por_categoria(canciones_lista)
     return render_template(
         "index.html",
         grupos=grupos,
-        canciones=canciones,   # lista plana alfabética para el índice
-        total=len(canciones),
+        canciones=canciones_lista,
+        total=len(canciones_lista),
         busqueda=busqueda,
         funciones=database.FUNCIONES,
         estilos=database.CATEGORIAS_SUGERIDAS,

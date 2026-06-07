@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 
 {% block contenido %}
-<form class="buscador" method="get" action="{{ url_for('inicio') }}">
+<form class="buscador" method="get" action="{{ url_for('canciones') }}">
     <input type="search" name="q" value="{{ busqueda }}"
            placeholder="Buscar por título, artista, etiqueta, categoría o letra...">
     <button type="submit" class="btn">Buscar</button>
     {% if busqueda %}
-        <a href="{{ url_for('inicio') }}" class="btn btn-gris">Limpiar</a>
+        <a href="{{ url_for('canciones') }}" class="btn btn-gris">Limpiar</a>
     {% endif %}
 </form>
 
-<form class="filtros-barra" method="get" action="{{ url_for('inicio') }}">
+<form class="filtros-barra" method="get" action="{{ url_for('canciones') }}">
     {% if busqueda %}<input type="hidden" name="q" value="{{ busqueda }}">{% endif %}
     <label>Grupo:
         <select name="grupo" onchange="this.form.submit()">
