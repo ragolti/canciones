@@ -1090,3 +1090,54 @@ footer {
     gap: 6px;
     align-items: center;
 }
+
+/* ================================================================
+   MODO COMANDOS — index.html
+   ================================================================ */
+
+/* Barra del toggle "Comandos" */
+.cmds-barra {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0 10px;
+}
+.cmds-ayuda {
+    font-size: 0.78rem;
+    color: var(--texto-suave);
+}
+
+/* Botón PDF por canción en la lista */
+.btn-pdf {
+    font-size: 0.9rem;
+    padding: 1px 6px;
+    border-radius: 5px;
+    border: 1px solid var(--gris-borde);
+    background: var(--card);
+    color: var(--texto);
+    text-decoration: none;
+    opacity: 0.65;
+    transition: opacity .15s;
+    flex-shrink: 0;
+    margin-left: 4px;
+}
+.btn-pdf:hover { opacity: 1; background: var(--color-principal); color: #fff; }
+
+/* ================================================================
+   ADMIN — PDF Propuestas
+   ================================================================ */
+.prop-tabla { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.prop-tabla th {
+    text-align: left; padding: 8px 12px;
+    border-bottom: 2px solid var(--gris-borde);
+    color: var(--texto-suave); font-size: 0.8rem;
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
+.prop-tabla td { padding: 8px 12px; border-bottom: 1px solid var(--gris-borde); }
+.prop-fila:hover { background: var(--card); }
+.prop-cfg {
+    font-size: 0.78rem; color: var(--texto-suave);
+    background: var(--gris-fondo);
+    border-radius: 4px; padding: 2px 6px;
+    display: inline-block;
+}

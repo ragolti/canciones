@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block titulo %}Propuestas de config PDF · Admin{% endblock %}
+{% block contenido %}
+
+<h1>🖨 Propuestas de configuración PDF</h1>
+<p style="color:var(--texto-suave);margin-top:-8px;margin-bottom:20px;font-size:0.92rem;">
+    Administradores que propusieron un diseño PDF para ser aprobado globalmente.
+    {% if es_admin_general %}
+        Podés <strong>aprobar</strong> para que quede para todos, o <strong>descartar</strong>.
+    {% else %}
+        Solo el admin general puede aprobar propuestas.
+    {% endif %}
+</p>
+
+{% if propuestas %}
+<table class="prop-tabla">
+    <thead>
+        <tr>
+            <th>Canción</th>
+            <th>Propuesto por</th>
+            <th>Configuración</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in propuestas %}
+        <tr class="prop-fila" id="fila-{{ p.id }}">
+            <td>
+                <strong>{{ p.titulo }}</strong>
+                {% if p.artista %}<br><small style="color:var(--texto-suave)">{{ p.artista }}</small>{% endif %}
+                <br>
+                <a href="{{ url_for('imprimir_cancion', cancion_id=p.cancion_id) }}"
+                   target="_blank" style="font-size:0.78rem">Ver PDF →</a>
+            </td>
+            <td>{{ p.usuario }}</td>
+            <td>
+                <span class="prop-cfg">{{ p.columnas }} col.</span>
+                <span class="prop-cfg">{{ p.margen }}</span>
+                {% if not p.mostrar_acordes %}<span class="prop-cfg">sin acordes</span>{% endif %}
+                {% if p.font_size %}<span class="prop-cfg">{{ p.font_size }}rem</span>{% endif %}
+                {% if p.quiebre_ln != None %}<span class="prop-cfg">quiebre ln{{ p.quiebre_ln }}</span>{% endif %}
+            </td>
+            <td>
+                {% if es_admin_general %}
+                <button class="btn btn-nueva btn-chico" onclick="aprobar({{ p.id }})">✅ Aprobar global</button>
+                {% endif %}
+                <button class="btn btn-gris btn-chico" onclick="descartar({{ p.id }})">✕ Descartar</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="vacio">
+    <p>🎉 No hay propuestas pendientes. ¡Todo al día!</p>
+    <a href="{{ url_for('inicio') }}" class="btn btn-gris">← Volver al cancionero</a>
+</div>
+{% endif %}
+
+<script>
+function aprobar(id) {
+    if (!confirm('¿Aprobar esta propuesta como config global para todos?')) return;
+    fetch('/admin/pdf-aprobar/' + id, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.ok) {
+                var fila = document.getElementById('fila-' + id);
+                if (fila) fila.remove();
+            } else {
+                alert(d.error || 'Error al aprobar.');
+            }
+        });
+}
+
+function descartar(id) {
+    if (!confirm('¿Descartar esta propuesta?')) return;
+    fetch('/admin/pdf-descartar/' + id, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.ok) {
+                var fila = document.getElementById('fila-' + id);
+                if (fila) fila.remove();
+            }
+        });
+}
+</script>
+
+{% endblock %}

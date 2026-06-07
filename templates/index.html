@@ -58,6 +58,15 @@
 </div>
 {% endif %}
 
+<!-- Barra de Comandos -->
+<div class="cmds-barra">
+    <button class="btn btn-chico" id="btn-comandos" onclick="toggleComandos()"
+            title="Mostrar u ocultar botones de clasificación en cada canción">
+        ⚙ Comandos: <span id="cmds-estado"></span>
+    </button>
+    <span class="cmds-ayuda">Activalo para clasificar tempo, estilo, etc.</span>
+</div>
+
 {% if total > 0 %}
     <details class="indice">
         <summary class="indice-titulo">📑 Índice de canciones ({{ total }})</summary>
@@ -111,6 +120,10 @@
                                     <span class="tono">Tono: {{ cancion['tono'] }}</span>
                                 {% endif %}
                             </a>
+                            <!-- Botón PDF directo por canción -->
+                            <a href="{{ url_for('imprimir_cancion', cancion_id=cancion['id']) }}"
+                               class="btn-pdf" title="Ver / imprimir esta canción como PDF"
+                               target="_blank">🖨</a>
                         </div>
                         {% if cancion['etiquetas'] %}
                             <div class="etiquetas">
@@ -123,7 +136,7 @@
                         {% endif %}
 
                         {% if usuario_actual %}
-                        <div class="clasif" data-id="{{ cancion['id'] }}">
+                        <div class="clasif cmds-area" data-id="{{ cancion['id'] }}">
                             <div class="clasif-grupo">
                                 <span class="clasif-label">Función</span>
                                 {% for f in funciones %}
@@ -167,6 +180,28 @@
 {% endif %}
 
 <script>
+    // ── Modo Comandos: muestra/oculta las secciones de clasificación ────────
+    var CMDS_KEY = 'adoremos_comandos';
+    function toggleComandos() {
+        var activo = localStorage.getItem(CMDS_KEY) === '1';
+        localStorage.setItem(CMDS_KEY, activo ? '0' : '1');
+        aplicarComandos(!activo);
+    }
+    function aplicarComandos(activo) {
+        document.querySelectorAll('.cmds-area').forEach(function(el) {
+            el.style.display = activo ? '' : 'none';
+        });
+        var estado = document.getElementById('cmds-estado');
+        if (estado) estado.textContent = activo ? 'ON' : 'OFF';
+        var btn = document.getElementById('btn-comandos');
+        if (btn) btn.classList.toggle('activo', activo);
+    }
+    // Aplicar estado guardado al cargar
+    (function() {
+        var activo = localStorage.getItem(CMDS_KEY) === '1';
+        aplicarComandos(activo);
+    })();
+
     // Filtro instantáneo del índice (sin recargar la página).
     const filtro = document.getElementById('filtro-indice');
     if (filtro) {

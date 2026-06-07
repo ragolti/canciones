@@ -64,26 +64,28 @@ def _es_linea_acorde_ext(linea):
 def filtro_letra_html(texto):
     """Convierte la letra (texto plano) a HTML con acordes en color.
 
-    Cada línea se envuelve en un <span> con clase:
-      .ln-acorde   → línea de acordes (color naranja/rojo)
+    Cada línea se envuelve en un <span> con clase y atributo data-ln (índice):
+      .ln-acorde   → línea de acordes (color azul)
       .ln-seccion  → indicación de sección como (Coro), [Estrofa], etc.
       .ln-letra    → línea de letra normal
       .ln-vacio    → línea en blanco (espacio entre estrofas)
+
+    El data-ln permite marcar quiebres de columna desde el editor PDF.
     """
     if not texto:
         return Markup("")
     partes = []
-    for linea in texto.splitlines():
+    for i, linea in enumerate(texto.splitlines()):
         stripped = linea.strip()
         if not stripped:
-            partes.append('<span class="ln-vacio"></span>')
+            partes.append(f'<span class="ln-vacio" data-ln="{i}"></span>')
         elif _es_linea_acorde_ext(stripped):
-            partes.append(f'<span class="ln-acorde">{_escape(linea)}</span>')
+            partes.append(f'<span class="ln-acorde" data-ln="{i}">{_escape(linea)}</span>')
         elif (stripped.startswith("(") and stripped.endswith(")")) or \
              (stripped.startswith("[") and stripped.endswith("]")):
-            partes.append(f'<span class="ln-seccion">{_escape(linea)}</span>')
+            partes.append(f'<span class="ln-seccion" data-ln="{i}">{_escape(linea)}</span>')
         else:
-            partes.append(f'<span class="ln-letra">{_escape(linea)}</span>')
+            partes.append(f'<span class="ln-letra" data-ln="{i}">{_escape(linea)}</span>')
     return Markup("\n".join(partes))
 
 
@@ -105,11 +107,26 @@ def es_admin():
     return bool(u and u["rol"] == "admin")
 
 
+def es_admin_general():
+    """True si el usuario es el admin general (Ruben), que puede anclar configs globales."""
+    u = usuario_actual()
+    if not u:
+        return False
+    nombre_ag = os.environ.get("ADMIN_GENERAL", "Ruben")
+    return u.get("usuario", "").lower() == nombre_ag.lower()
+
+
 @app.context_processor
 def inyectar_usuario():
-    """Hace que las plantillas conozcan al usuario logueado y los pendientes."""
+    """Hace que las plantillas conozcan al usuario logueado, los pendientes y propuestas PDF."""
     pendientes = database.contar_pendientes() if es_admin() else 0
-    return {"usuario_actual": usuario_actual(), "pendientes": pendientes}
+    propuestas_pdf = database.contar_propuestas_pdf() if es_admin() else 0
+    return {
+        "usuario_actual": usuario_actual(),
+        "pendientes": pendientes,
+        "propuestas_pdf": propuestas_pdf,
+        "es_admin_general": es_admin_general(),
+    }
 
 
 def login_required(f):
@@ -266,13 +283,93 @@ def ver_lista(lista_id):
 
 @app.route("/imprimir/<int:cancion_id>")
 def imprimir_cancion(cancion_id):
-    """Página optimizada para imprimir o guardar como PDF (Ctrl+P)."""
+    """Página optimizada para imprimir / guardar como PDF, con editor de layout."""
     cancion = database.obtener_cancion(cancion_id)
     if cancion is None:
         flash("Esa canción no existe.")
         return redirect(url_for("inicio"))
     datos = _cancion_transpuesta(cancion, _leer_semitonos())
-    return render_template("imprimir.html", cancion=datos)
+    u = usuario_actual()
+    pdf_cfg = database.obtener_pdf_config(cancion_id, u["id"] if u else None)
+    return render_template("imprimir.html", cancion=datos, pdf_cfg=pdf_cfg)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# API: Configuración PDF por canción
+# ──────────────────────────────────────────────────────────────────────────────
+
+@app.route("/api/pdf-anclar/<int:cancion_id>", methods=["POST"])
+@login_required
+def api_pdf_anclar(cancion_id):
+    """Guarda la config PDF del usuario para esta canción (config personal)."""
+    datos = request.get_json(silent=True) or {}
+    u = usuario_actual()
+    database.guardar_pdf_config(
+        cancion_id=cancion_id,
+        usuario_id=u["id"],
+        font_size=datos.get("font_size"),
+        quiebre_ln=datos.get("quiebre_ln"),
+        margen=datos.get("margen", "normal"),
+        mostrar_acordes=datos.get("mostrar_acordes", True),
+        columnas=datos.get("columnas", 2),
+        propuesta=False,
+    )
+    return {"ok": True, "msg": "Config anclada para vos."}
+
+
+@app.route("/api/pdf-proponer/<int:cancion_id>", methods=["POST"])
+@admin_required
+def api_pdf_proponer(cancion_id):
+    """Admin propone su config como global (o la aplica directamente si es admin general)."""
+    datos = request.get_json(silent=True) or {}
+    u = usuario_actual()
+    if es_admin_general():
+        database.guardar_pdf_config_global(
+            cancion_id=cancion_id,
+            font_size=datos.get("font_size"),
+            quiebre_ln=datos.get("quiebre_ln"),
+            margen=datos.get("margen", "normal"),
+            mostrar_acordes=datos.get("mostrar_acordes", True),
+            columnas=datos.get("columnas", 2),
+        )
+        return {"ok": True, "global": True, "msg": "Config anclada globalmente para todos."}
+    database.guardar_pdf_config(
+        cancion_id=cancion_id,
+        usuario_id=u["id"],
+        font_size=datos.get("font_size"),
+        quiebre_ln=datos.get("quiebre_ln"),
+        margen=datos.get("margen", "normal"),
+        mostrar_acordes=datos.get("mostrar_acordes", True),
+        columnas=datos.get("columnas", 2),
+        propuesta=True,
+    )
+    return {"ok": True, "global": False, "msg": "Propuesta enviada al admin general."}
+
+
+@app.route("/admin/pdf-propuestas")
+@admin_required
+def admin_pdf_propuestas():
+    """Lista de propuestas de config PDF pendientes de aprobación."""
+    propuestas = database.listar_propuestas_pdf()
+    return render_template("admin_pdf_propuestas.html", propuestas=propuestas)
+
+
+@app.route("/admin/pdf-aprobar/<int:config_id>", methods=["POST"])
+@admin_required
+def admin_pdf_aprobar(config_id):
+    """Aprueba una propuesta de config PDF (solo admin general)."""
+    if not es_admin_general():
+        return {"ok": False, "error": "Solo el admin general puede aprobar."}, 403
+    ok = database.aprobar_pdf_propuesta(config_id)
+    return {"ok": ok}
+
+
+@app.route("/admin/pdf-descartar/<int:config_id>", methods=["POST"])
+@admin_required
+def admin_pdf_descartar(config_id):
+    """Descarta una propuesta de config PDF."""
+    database.descartar_pdf_propuesta(config_id)
+    return {"ok": True}
 
 
 @app.route("/presentar/<int:cancion_id>")

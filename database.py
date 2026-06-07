@@ -325,6 +325,9 @@ def inicializar():
     _ejecutar("CREATE INDEX IF NOT EXISTS ix_canciones_estado    ON canciones (estado)")
     _ejecutar("CREATE INDEX IF NOT EXISTS ix_conocidas_usuario   ON conocidas (usuario_id)")
 
+    # Tabla de configuración PDF por canción/usuario.
+    _init_pdf_config()
+
 
 def crear_varias(filas):
     """Inserta muchas canciones en UNA sola conexión (rápido y eficiente).
@@ -777,3 +780,141 @@ def borrar_cancion(cancion_id):
     """Elimina una canción de la base de datos (y sus marcas de 'conocida')."""
     _ejecutar("DELETE FROM conocidas WHERE cancion_id = ?", (cancion_id,))
     _ejecutar("DELETE FROM canciones WHERE id = ?", (cancion_id,))
+
+
+# ---------- Configuración PDF por canción ----------
+
+def _init_pdf_config():
+    """Crea la tabla pdf_config si no existe (se llama desde inicializar)."""
+    if USAR_POSTGRES:
+        sql = """
+            CREATE TABLE IF NOT EXISTS pdf_config (
+                id              SERIAL PRIMARY KEY,
+                cancion_id      INTEGER NOT NULL,
+                usuario_id      INTEGER,
+                font_size       REAL,
+                quiebre_ln      INTEGER,
+                margen          TEXT DEFAULT 'normal',
+                mostrar_acordes INTEGER DEFAULT 1,
+                columnas        INTEGER DEFAULT 2,
+                es_global       INTEGER DEFAULT 0,
+                propuesta       INTEGER DEFAULT 0,
+                creada_en       TEXT DEFAULT (CURRENT_TIMESTAMP::text)
+            )
+        """
+    else:
+        sql = """
+            CREATE TABLE IF NOT EXISTS pdf_config (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                cancion_id      INTEGER NOT NULL,
+                usuario_id      INTEGER,
+                font_size       REAL,
+                quiebre_ln      INTEGER,
+                margen          TEXT DEFAULT 'normal',
+                mostrar_acordes INTEGER DEFAULT 1,
+                columnas        INTEGER DEFAULT 2,
+                es_global       INTEGER DEFAULT 0,
+                propuesta       INTEGER DEFAULT 0,
+                creada_en       TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """
+    _ejecutar(sql)
+    _ejecutar("CREATE INDEX IF NOT EXISTS ix_pdfcfg_cancion ON pdf_config (cancion_id)")
+
+
+def obtener_pdf_config(cancion_id, usuario_id=None):
+    """
+    Devuelve la configuración PDF efectiva para una canción y usuario.
+    Prioridad: config propia del usuario > config global > None.
+    """
+    if usuario_id:
+        propia = _ejecutar(
+            "SELECT * FROM pdf_config WHERE cancion_id = ? AND usuario_id = ?",
+            (cancion_id, usuario_id), fetch="one"
+        )
+        if propia:
+            return propia
+    # Config global (anclada para todos)
+    return _ejecutar(
+        "SELECT * FROM pdf_config WHERE cancion_id = ? AND es_global = 1",
+        (cancion_id,), fetch="one"
+    )
+
+
+def guardar_pdf_config(cancion_id, usuario_id, font_size, quiebre_ln,
+                       margen, mostrar_acordes, columnas, propuesta=False):
+    """Guarda (upsert) la configuración PDF de un usuario para una canción."""
+    existente = _ejecutar(
+        "SELECT id FROM pdf_config WHERE cancion_id = ? AND usuario_id = ?",
+        (cancion_id, usuario_id), fetch="one"
+    )
+    p = 1 if propuesta else 0
+    if existente:
+        _ejecutar(
+            """UPDATE pdf_config SET font_size=?, quiebre_ln=?, margen=?,
+               mostrar_acordes=?, columnas=?, propuesta=?
+               WHERE cancion_id=? AND usuario_id=?""",
+            (font_size, quiebre_ln, margen, int(mostrar_acordes),
+             int(columnas), p, cancion_id, usuario_id)
+        )
+    else:
+        sql = """INSERT INTO pdf_config
+            (cancion_id, usuario_id, font_size, quiebre_ln, margen,
+             mostrar_acordes, columnas, es_global, propuesta)
+            VALUES (?,?,?,?,?,?,?,0,?)"""
+        if USAR_POSTGRES:
+            sql += " RETURNING id"
+        _ejecutar(sql, (cancion_id, usuario_id, font_size, quiebre_ln,
+                        margen, int(mostrar_acordes), int(columnas), p))
+
+
+def guardar_pdf_config_global(cancion_id, font_size, quiebre_ln,
+                               margen, mostrar_acordes, columnas):
+    """Reemplaza la config PDF global de una canción (para el admin general)."""
+    _ejecutar("DELETE FROM pdf_config WHERE cancion_id=? AND es_global=1", (cancion_id,))
+    sql = """INSERT INTO pdf_config
+        (cancion_id, usuario_id, font_size, quiebre_ln, margen,
+         mostrar_acordes, columnas, es_global, propuesta)
+        VALUES (?,NULL,?,?,?,?,?,1,0)"""
+    if USAR_POSTGRES:
+        sql += " RETURNING id"
+    _ejecutar(sql, (cancion_id, font_size, quiebre_ln, margen,
+                    int(mostrar_acordes), int(columnas)))
+
+
+def listar_propuestas_pdf():
+    """Devuelve configs propuestas como globales pero pendientes de aprobación."""
+    sql = """SELECT p.*, c.titulo, c.artista, u.usuario
+             FROM pdf_config p
+             JOIN canciones c ON c.id = p.cancion_id
+             JOIN usuarios u ON u.id = p.usuario_id
+             WHERE p.propuesta = 1
+             ORDER BY p.creada_en DESC"""
+    return _ejecutar(sql, fetch="all") or []
+
+
+def contar_propuestas_pdf():
+    """Cuántas configs están esperando aprobación."""
+    fila = _ejecutar(
+        "SELECT COUNT(*) AS n FROM pdf_config WHERE propuesta = 1",
+        fetch="one"
+    )
+    return fila["n"] if fila else 0
+
+
+def aprobar_pdf_propuesta(config_id):
+    """Convierte una propuesta en la config global de la canción."""
+    cfg = _ejecutar("SELECT * FROM pdf_config WHERE id=?", (config_id,), fetch="one")
+    if not cfg:
+        return False
+    guardar_pdf_config_global(
+        cfg["cancion_id"], cfg["font_size"], cfg["quiebre_ln"],
+        cfg["margen"], cfg["mostrar_acordes"], cfg["columnas"]
+    )
+    _ejecutar("DELETE FROM pdf_config WHERE id=?", (config_id,))
+    return True
+
+
+def descartar_pdf_propuesta(config_id):
+    """Descarta una propuesta sin aplicarla."""
+    _ejecutar("DELETE FROM pdf_config WHERE id=?", (config_id,))
