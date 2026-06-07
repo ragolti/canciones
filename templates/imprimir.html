@@ -7,7 +7,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 8mm 12mm;
+            margin: var(--mg-top, 8mm) var(--mg-sides, 12mm);
         }
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -21,71 +21,130 @@
             print-color-adjust: exact;
         }
 
-        /* Barra (solo pantalla) */
+        /* ── Barra de controles (solo pantalla) ── */
         .barra {
-            text-align: center;
-            padding: 8px 16px;
-            background: #f5f5f5;
-            border-bottom: 1px solid #ddd;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
             flex-wrap: wrap;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ccc;
+        }
+        .barra-grupo {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            background: #fff;
+            border: 1px solid #bbb;
+            border-radius: 7px;
+            padding: 2px 4px;
         }
         .barra button, .barra a {
-            font-size: 0.95rem; padding: 6px 16px; cursor: pointer;
-            border: 1px solid #888; border-radius: 8px; background: white;
-            text-decoration: none; color: #111;
+            font-size: 0.82rem; padding: 3px 10px; cursor: pointer;
+            border: 1px solid transparent; border-radius: 5px;
+            background: transparent; color: #111; text-decoration: none;
+            white-space: nowrap;
         }
-        .barra .ayuda { font-size: 0.75rem; color: #666; width: 100%; text-align: center; }
-        @media print { .barra { display: none; } }
+        .barra button:hover { background: #e0e0e0; }
+        .barra button.activo { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+        .barra .sep { width: 1px; height: 22px; background: #ccc; margin: 0 2px; }
+        .barra .etiq { font-size: 0.7rem; color: #777; padding: 0 4px; }
+        .barra .btn-anclar { background: #1a6e3c; color: #fff; border-radius: 6px; padding: 3px 12px; }
+        .barra .btn-anclar:hover { background: #155c33; }
+        .barra .btn-proponer { background: #7b1fa2; color: #fff; border-radius: 6px; padding: 3px 12px; }
+        .barra .btn-proponer:hover { background: #6a1b9a; }
+        .barra .btn-quiebre.modo-quiebre { background: #e65100; color: #fff; }
+        .barra-estado {
+            font-size: 0.72rem; color: #888; padding: 0 4px;
+            min-width: 90px; text-align: center;
+        }
+        .barra-estado.guardado { color: #388e3c; }
+        .barra-estado.propuesto { color: #7b1fa2; }
+        @media print { .barra { display: none !important; } }
+        :fullscreen .barra, :-webkit-full-screen .barra { display: none !important; }
 
-        /* Pantalla completa: ocultar barra */
-        :fullscreen .barra,
-        :-webkit-full-screen .barra { display: none !important; }
-
+        /* ── Tooltip pantalla completa ── */
         .hint-fs {
             display: none;
-            position: fixed;
-            bottom: 12px;
-            right: 16px;
-            background: rgba(0,0,0,0.55);
-            color: #fff;
-            font-size: 0.78rem;
-            padding: 5px 12px;
-            border-radius: 20px;
-            z-index: 100;
-            pointer-events: none;
+            position: fixed; bottom: 12px; right: 16px;
+            background: rgba(0,0,0,.55); color: #fff;
+            font-size: 0.78rem; padding: 5px 12px;
+            border-radius: 20px; z-index: 100; pointer-events: none;
         }
-        :fullscreen .hint-fs,
-        :-webkit-full-screen .hint-fs { display: block; }
+        :fullscreen .hint-fs, :-webkit-full-screen .hint-fs { display: block; }
         @media print { .hint-fs { display: none !important; } }
 
-        /* Hoja */
-        .hoja {
-            overflow: hidden;
+        /* ── Modo quiebre: cursor y hover en líneas ── */
+        body.modo-quiebre .letra [data-ln] { cursor: crosshair; }
+        body.modo-quiebre .letra [data-ln]:hover {
+            background: rgba(230, 81, 0, 0.12);
+            outline: 1px dashed #e65100;
         }
+        .ln-quiebre {
+            break-before: column !important;
+            -webkit-column-break-before: always !important;
+        }
+
+        /* ── Grilla de variantes (overlay) ── */
+        .variantes-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .variantes-overlay.visible { display: flex; }
+        .variantes-panel {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px 24px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.3);
+            max-width: 520px; width: 95%;
+        }
+        .variantes-panel h3 { margin: 0 0 14px; font-size: 1rem; color: #333; }
+        .variantes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .var-card {
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: border-color .15s, background .15s;
+        }
+        .var-card:hover { border-color: #1a1a2e; background: #f5f5ff; }
+        .var-card.activo { border-color: #1a6e3c; background: #f0fff4; }
+        .var-card-titulo { font-weight: bold; font-size: 0.9rem; margin-bottom: 4px; }
+        .var-card-desc { font-size: 0.75rem; color: #666; }
+        .variantes-panel .btn-cerrar {
+            display: block; margin-top: 14px;
+            text-align: center; background: none;
+            border: 1px solid #bbb; border-radius: 6px;
+            padding: 6px 16px; cursor: pointer; font-size: 0.85rem;
+        }
+        .variantes-panel .btn-cerrar:hover { background: #f0f0f0; }
+
+        /* ── Hoja A4 ── */
+        .hoja { overflow: hidden; }
 
         @media screen {
-            .hoja {
-                width: 100%;
-                padding: 6px 22px 8px;
-            }
+            .hoja { width: 100%; padding: 6px 22px 8px; }
         }
-
         @media print {
             .hoja { border: none; box-shadow: none; margin: 0; padding: 0; width: 100%; }
         }
 
-        /* Cabecera */
+        /* ── Cabecera ── */
         .cab {
-            display: flex;
-            align-items: flex-end;
+            display: flex; align-items: flex-end;
             justify-content: space-between;
             border-bottom: 2.5px solid #222;
-            padding-bottom: 3mm;
-            margin-bottom: 3mm;
+            padding-bottom: 3mm; margin-bottom: 3mm;
             flex-shrink: 0;
         }
         .cab-titulo { font-size: 1.9rem; font-weight: 900; line-height: 1; }
@@ -93,29 +152,27 @@
         .cab-tono {
             font-size: 0.88rem; font-weight: bold;
             background: #1a1a2e; color: #fff;
-            padding: 2px 10px; border-radius: 5px;
-            flex-shrink: 0;
+            padding: 2px 10px; border-radius: 5px; flex-shrink: 0;
         }
 
-        /* Letra */
+        /* ── Letra ── */
         .letra {
             columns: 2;
             column-gap: 14mm;
             column-fill: balance;
             font-family: "Calibri", "Arial", sans-serif;
             font-weight: bold;
-            font-size: 1.35rem;   /* JS lo sobreescribe en pantalla */
+            font-size: 1.35rem;
             line-height: 1.28;
         }
+        .letra.una-columna { columns: 1; }
 
-        /* Tipos de línea — tamaños relativos para escalar con la base */
         .ln-vacio   { display: block; height: 0.4em; }
         .ln-acorde  {
             display: block; white-space: pre-wrap;
             font-size: 0.65em; font-weight: bold;
-            color: #1565c0;
-            line-height: 1.35; letter-spacing: 0.03em;
-            margin-top: 0.25em;
+            color: #1565c0; line-height: 1.35;
+            letter-spacing: 0.03em; margin-top: 0.25em;
         }
         .ln-letra   { display: block; white-space: pre-wrap; }
         .ln-seccion {
@@ -123,103 +180,482 @@
             font-size: 0.6em; font-style: italic;
             font-weight: normal; color: #888; margin-top: 0.35em;
         }
+
+        /* Ocultar acordes cuando se pide */
+        .letra.sin-acordes .ln-acorde { display: none !important; }
+
+        /* Márgenes de impresión */
+        @media print {
+            @page { margin: var(--mg-top, 8mm) var(--mg-sides, 12mm); }
+        }
     </style>
 </head>
 <body>
-    <div class="barra">
-        <button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
-        <button onclick="togglePantallaCompleta()" title="Ctrl+L">⛶ Pantalla completa</button>
-        <div class="ayuda">
-            <b>Ctrl+L</b> pantalla completa &nbsp;·&nbsp;
-            Tip: activá <b>"Gráficos en segundo plano"</b> al imprimir para los colores.
+
+<!-- Overlay grilla de variantes -->
+<div class="variantes-overlay" id="variantes-overlay">
+    <div class="variantes-panel">
+        <h3>🎨 Elegí un diseño</h3>
+        <div class="variantes-grid" id="variantes-grid">
+            <!-- generado por JS -->
         </div>
+        <button class="btn-cerrar" onclick="cerrarVariantes()">Cerrar</button>
+    </div>
+</div>
+
+<div class="hint-fs">Esc para salir · Ctrl+L para volver</div>
+
+<!-- Barra de controles -->
+<div class="barra" id="barra">
+    <div class="barra-grupo">
+        <button onclick="window.print()">🖨️ Imprimir</button>
+        <button onclick="toggleFS()" title="Ctrl+L">⛶ Full</button>
+        <a href="{{ url_for('ver_cancion', cancion_id=cancion['id']) }}"
+           title="Volver a la canción">← Volver</a>
     </div>
 
-    <div class="hint-fs">Esc para salir de pantalla completa</div>
+    <div class="sep"></div>
 
-    <div class="hoja" id="hoja">
-        <div class="cab" id="cab">
-            <div>
-                <span class="cab-titulo">{{ cancion['titulo'] }}</span>
-                {% if cancion['artista'] %}
-                    <span class="cab-artista">{{ cancion['artista'] }}</span>
-                {% endif %}
-            </div>
-            {% if cancion['tono'] %}
-                <span class="cab-tono">Tono: {{ cancion['tono'] }}</span>
-            {% endif %}
-        </div>
-
-        <div class="letra" id="letra">
-            {# Mostrar tono como línea de acorde al inicio si la letra no empieza con acorde #}
-            {% if cancion['tono'] %}
-                {% set primera = (cancion['letra'] or '').splitlines() | first | default('') %}
-                {% if not (primera | es_linea_acorde) %}
-                    <span class="ln-acorde">{{ cancion['tono'] }}</span>
-                {% endif %}
-            {% endif %}
-            {{ cancion['letra'] | letra_html }}
-        </div>
+    <div class="barra-grupo">
+        <span class="etiq">Texto</span>
+        <button onclick="cambiarTam(-0.1)" title="Achicar texto">A−</button>
+        <button onclick="cambiarTam(+0.1)" title="Agrandar texto">A+</button>
+        <button onclick="autoEscalar()" title="Llenar la pantalla" id="btn-auto">↔ Auto</button>
     </div>
 
-    <script>
-    // ─────────────────────────────────────────────────────────────
-    // AUTO-ESCALA con techo de 3.5rem para evitar fuentes ridículas
-    // ─────────────────────────────────────────────────────────────
-    const TAM_MAX_ABSOLUTO = 3.5; // rem
+    <div class="sep"></div>
 
-    function escalar() {
-        if (window.matchMedia('print').matches) return;
+    <div class="barra-grupo">
+        <span class="etiq">Cols</span>
+        <button onclick="setCols(1)" id="btn-1col">1</button>
+        <button onclick="setCols(2)" id="btn-2col" class="activo">2</button>
+    </div>
 
-        const hoja   = document.getElementById('hoja');
-        const cab    = document.getElementById('cab');
-        const bloque = document.getElementById('letra');
-        if (!hoja || !bloque) return;
+    <div class="sep"></div>
 
-        const barra = document.querySelector('.barra');
-        const alturaBarra = (barra && !document.fullscreenElement) ? barra.offsetHeight : 0;
-        const alturaHoja  = window.innerHeight - alturaBarra - 8;
+    <div class="barra-grupo">
+        <span class="etiq">Acordes</span>
+        <button onclick="toggleAcordes()" id="btn-acordes" class="activo">♪</button>
+    </div>
 
-        hoja.style.height = alturaHoja + 'px';
+    <div class="sep"></div>
 
-        const alturaMax = alturaHoja - (cab ? cab.offsetHeight : 0) - 8;
-        if (alturaMax < 40) return;
+    <div class="barra-grupo">
+        <span class="etiq">Margen</span>
+        <button onclick="setMargen('fino')"   id="btn-mfino">Fino</button>
+        <button onclick="setMargen('normal')" id="btn-mnormal" class="activo">Normal</button>
+        <button onclick="setMargen('amplio')" id="btn-mamplio">Amplio</button>
+    </div>
 
-        // Búsqueda binaria del tamaño óptimo
-        let lo = 0.8, hi = 7.0;
-        for (let i = 0; i < 22; i++) {
-            const mid = (lo + hi) / 2;
-            bloque.style.fontSize = mid + 'rem';
-            if (bloque.offsetHeight <= alturaMax) lo = mid; else hi = mid;
-        }
-        // Aplicar con techo: no más de 3.5rem aunque sobre espacio
-        const tam = Math.min(Math.floor(lo * 100) / 100, TAM_MAX_ABSOLUTO);
-        bloque.style.fontSize = tam + 'rem';
-    }
+    <div class="sep"></div>
 
-    document.fonts.ready.then(escalar);
-    window.addEventListener('resize', escalar);
+    <button class="btn-quiebre" id="btn-quiebre" onclick="toggleModoQuiebre()"
+            title="Hacé clic en una línea para marcar desde dónde empieza la 2da columna">
+        ↕ Quiebre
+    </button>
+    <button onclick="quitarQuiebre()" title="Quitar quiebre manual" style="font-size:0.75rem;color:#888">✕</button>
 
-    // ─────────────────────────────────────────────────────────────
-    // PANTALLA COMPLETA: Ctrl+L
-    // ─────────────────────────────────────────────────────────────
-    function togglePantallaCompleta() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().then(escalar).catch(() => {});
-        } else {
-            document.exitFullscreen().then(escalar).catch(() => {});
-        }
-    }
+    <div class="sep"></div>
 
-    document.addEventListener('fullscreenchange', escalar);
-    document.addEventListener('webkitfullscreenchange', escalar);
+    <button onclick="mostrarVariantes()" title="Ver 4 opciones de diseño">🎨 Variantes</button>
 
-    document.addEventListener('keydown', e => {
-        if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) {
-            e.preventDefault();
-            togglePantallaCompleta();
-        }
+    <div class="sep"></div>
+
+    <span class="barra-estado" id="barra-estado">sin guardar</span>
+
+    {% if usuario_actual %}
+    <button class="btn-anclar" onclick="anclar(false)" title="Guardar este diseño para vos">
+        📌 Anclar
+    </button>
+    {% endif %}
+
+    {% if usuario_actual and usuario_actual.rol == 'admin' %}
+    <button class="btn-proponer" onclick="anclar(true)"
+            title="{% if es_admin_general %}Anclar como config global para todos{% else %}Proponer como config global (Ruben aprueba){% endif %}">
+        {% if es_admin_general %}🌐 Global{% else %}📤 Proponer{% endif %}
+    </button>
+    {% endif %}
+</div>
+
+<!-- Hoja -->
+<div class="hoja" id="hoja">
+    <div class="cab" id="cab">
+        <div>
+            <span class="cab-titulo">{{ cancion['titulo'] }}</span>
+            {% if cancion['artista'] %}
+                <span class="cab-artista">{{ cancion['artista'] }}</span>
+            {% endif %}
+        </div>
+        {% if cancion['tono'] %}
+            <span class="cab-tono">Tono: {{ cancion['tono'] }}</span>
+        {% endif %}
+    </div>
+
+    <div class="letra" id="letra">
+        {% if cancion['tono'] %}
+            {% set primera = (cancion['letra'] or '').splitlines() | first | default('') %}
+            {% if not (primera | es_linea_acorde) %}
+                <span class="ln-acorde">{{ cancion['tono'] }}</span>
+            {% endif %}
+        {% endif %}
+        {{ cancion['letra'] | letra_html }}
+    </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Estado de la configuración actual
+// ─────────────────────────────────────────────────────────────────────────────
+const CANCION_ID = {{ cancion['id'] }};
+const ES_ADMIN   = {{ 'true' if (usuario_actual and usuario_actual.rol == 'admin') else 'false' }};
+const TAM_MAX    = 3.5;  // rem: techo para auto-escala
+
+let cfg = {
+    font_size:       null,   // null = auto
+    quiebre_ln:      null,   // null = sin quiebre
+    margen:          'normal',
+    mostrar_acordes: true,
+    columnas:        2,
+};
+let modoQuiebre = false;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Aplicar configuración del servidor al cargar
+// ─────────────────────────────────────────────────────────────────────────────
+{% if pdf_cfg %}
+(function() {
+    const c = {{ pdf_cfg | tojson }};
+    cfg.font_size       = c.font_size   || null;
+    cfg.quiebre_ln      = c.quiebre_ln != null ? c.quiebre_ln : null;
+    cfg.margen          = c.margen      || 'normal';
+    cfg.mostrar_acordes = c.mostrar_acordes != 0;
+    cfg.columnas        = c.columnas    || 2;
+})();
+{% endif %}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Aplicar configuración a la UI
+// ─────────────────────────────────────────────────────────────────────────────
+function aplicarConfig() {
+    const letra = document.getElementById('letra');
+    if (!letra) return;
+
+    // Columnas
+    letra.classList.toggle('una-columna', cfg.columnas === 1);
+    actualizarBtn('btn-1col', cfg.columnas === 1);
+    actualizarBtn('btn-2col', cfg.columnas === 2);
+
+    // Acordes
+    letra.classList.toggle('sin-acordes', !cfg.mostrar_acordes);
+    actualizarBtn('btn-acordes', cfg.mostrar_acordes);
+
+    // Margen
+    ['fino', 'normal', 'amplio'].forEach(function(m) {
+        actualizarBtn('btn-m' + m, cfg.margen === m);
     });
-    </script>
+    aplicarMargen(cfg.margen);
+
+    // Quiebre de columna
+    document.querySelectorAll('.ln-quiebre').forEach(function(s) {
+        s.classList.remove('ln-quiebre');
+    });
+    if (cfg.quiebre_ln !== null) {
+        const span = document.querySelector('[data-ln="' + cfg.quiebre_ln + '"]');
+        if (span) span.classList.add('ln-quiebre');
+    }
+
+    // Tamaño de fuente
+    if (cfg.font_size) {
+        letra.style.fontSize = cfg.font_size + 'rem';
+        actualizarBtn('btn-auto', false);
+    } else {
+        autoEscalar();
+        actualizarBtn('btn-auto', true);
+    }
+}
+
+function actualizarBtn(id, activo) {
+    const b = document.getElementById(id);
+    if (b) b.classList.toggle('activo', activo);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auto-escala: busca el tamaño máximo que entra en pantalla
+// ─────────────────────────────────────────────────────────────────────────────
+function autoEscalar() {
+    if (window.matchMedia('print').matches) return;
+    const hoja   = document.getElementById('hoja');
+    const cab    = document.getElementById('cab');
+    const letra  = document.getElementById('letra');
+    if (!hoja || !letra) return;
+
+    const barra = document.getElementById('barra');
+    const alturaBarra = (barra && !document.fullscreenElement) ? barra.offsetHeight : 0;
+    const alturaHoja  = window.innerHeight - alturaBarra - 8;
+    hoja.style.height = alturaHoja + 'px';
+    const alturaMax = alturaHoja - (cab ? cab.offsetHeight : 0) - 8;
+    if (alturaMax < 40) return;
+
+    let lo = 0.8, hi = 7.0;
+    for (let i = 0; i < 22; i++) {
+        const mid = (lo + hi) / 2;
+        letra.style.fontSize = mid + 'rem';
+        if (letra.offsetHeight <= alturaMax) lo = mid; else hi = mid;
+    }
+    const tam = Math.min(Math.floor(lo * 100) / 100, TAM_MAX);
+    letra.style.fontSize = tam + 'rem';
+    cfg.font_size = null;   // en modo auto no fijamos un valor
+    actualizarBtn('btn-auto', true);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Controles
+// ─────────────────────────────────────────────────────────────────────────────
+function cambiarTam(delta) {
+    const letra = document.getElementById('letra');
+    if (!letra) return;
+    const actual = parseFloat(letra.style.fontSize) ||
+                   parseFloat(getComputedStyle(letra).fontSize) / 16;
+    const nuevo = Math.min(Math.max(actual + delta, 0.6), 6.0);
+    cfg.font_size = Math.round(nuevo * 100) / 100;
+    letra.style.fontSize = cfg.font_size + 'rem';
+    actualizarBtn('btn-auto', false);
+    marcarSucioPDF();
+}
+
+function setCols(n) {
+    cfg.columnas = n;
+    const letra = document.getElementById('letra');
+    if (letra) letra.classList.toggle('una-columna', n === 1);
+    actualizarBtn('btn-1col', n === 1);
+    actualizarBtn('btn-2col', n === 2);
+    if (!cfg.font_size) autoEscalar();
+    marcarSucioPDF();
+}
+
+function toggleAcordes() {
+    cfg.mostrar_acordes = !cfg.mostrar_acordes;
+    const letra = document.getElementById('letra');
+    if (letra) letra.classList.toggle('sin-acordes', !cfg.mostrar_acordes);
+    actualizarBtn('btn-acordes', cfg.mostrar_acordes);
+    if (!cfg.font_size) autoEscalar();
+    marcarSucioPDF();
+}
+
+function setMargen(m) {
+    cfg.margen = m;
+    aplicarMargen(m);
+    ['fino', 'normal', 'amplio'].forEach(function(x) {
+        actualizarBtn('btn-m' + x, x === m);
+    });
+    marcarSucioPDF();
+}
+
+function aplicarMargen(m) {
+    const tops   = { fino: '5mm', normal: '8mm', amplio: '16mm' };
+    const sides  = { fino: '8mm', normal: '12mm', amplio: '22mm' };
+    const hoja = document.getElementById('hoja');
+    if (!hoja) return;
+    hoja.style.paddingLeft  = sides[m]  || '12mm';
+    hoja.style.paddingRight = sides[m]  || '12mm';
+    hoja.style.paddingTop   = tops[m]   || '8mm';
+    // Actualizar variables CSS para @page en impresión
+    document.documentElement.style.setProperty('--mg-top',   tops[m]  || '8mm');
+    document.documentElement.style.setProperty('--mg-sides', sides[m] || '12mm');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Quiebre de columna
+// ─────────────────────────────────────────────────────────────────────────────
+function toggleModoQuiebre() {
+    modoQuiebre = !modoQuiebre;
+    document.body.classList.toggle('modo-quiebre', modoQuiebre);
+    const btn = document.getElementById('btn-quiebre');
+    if (btn) btn.classList.toggle('modo-quiebre', modoQuiebre);
+    if (modoQuiebre) {
+        document.getElementById('barra-estado').textContent = '👆 Clic en una línea para marcar quiebre';
+    } else {
+        marcarSucioPDF();
+    }
+}
+
+function quitarQuiebre() {
+    document.querySelectorAll('.ln-quiebre').forEach(function(s) {
+        s.classList.remove('ln-quiebre');
+    });
+    cfg.quiebre_ln = null;
+    marcarSucioPDF();
+}
+
+// Escuchar clics en líneas de letra para marcar quiebre
+document.addEventListener('click', function(e) {
+    if (!modoQuiebre) return;
+    const span = e.target.closest('[data-ln]');
+    if (!span) return;
+    // Quitar quiebre anterior
+    document.querySelectorAll('.ln-quiebre').forEach(function(s) {
+        s.classList.remove('ln-quiebre');
+    });
+    span.classList.add('ln-quiebre');
+    cfg.quiebre_ln = parseInt(span.dataset.ln);
+    // Salir del modo quiebre
+    modoQuiebre = false;
+    document.body.classList.remove('modo-quiebre');
+    const btn = document.getElementById('btn-quiebre');
+    if (btn) btn.classList.remove('modo-quiebre');
+    marcarSucioPDF();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Variantes
+// ─────────────────────────────────────────────────────────────────────────────
+const VARIANTES = [
+    { id: 0, nombre: 'Estándar',    desc: '2 columnas · auto-escala',        columnas: 2, acordes: true,  escala: null, margen: 'normal' },
+    { id: 1, nombre: 'Grande',      desc: '1 columna · texto amplio',         columnas: 1, acordes: true,  escala: 1.3,  margen: 'normal' },
+    { id: 2, nombre: 'Compacto',    desc: '2 col. · márgenes ajustados',      columnas: 2, acordes: true,  escala: 0.82, margen: 'fino'   },
+    { id: 3, nombre: 'Solo letra',  desc: '2 col. · oculta los acordes',      columnas: 2, acordes: false, escala: 1.1,  margen: 'normal' },
+];
+let varianteActual = 0;
+
+function mostrarVariantes() {
+    const grid = document.getElementById('variantes-grid');
+    grid.innerHTML = '';
+    VARIANTES.forEach(function(v) {
+        const card = document.createElement('div');
+        card.className = 'var-card' + (v.id === varianteActual ? ' activo' : '');
+        card.innerHTML = '<div class="var-card-titulo">' + v.nombre + '</div>'
+                       + '<div class="var-card-desc">' + v.desc + '</div>';
+        card.onclick = function() { aplicarVariante(v); cerrarVariantes(); };
+        grid.appendChild(card);
+    });
+    document.getElementById('variantes-overlay').classList.add('visible');
+}
+
+function cerrarVariantes() {
+    document.getElementById('variantes-overlay').classList.remove('visible');
+}
+
+function aplicarVariante(v) {
+    varianteActual = v.id;
+    cfg.columnas        = v.columnas;
+    cfg.mostrar_acordes = v.acordes;
+    cfg.margen          = v.margen;
+    if (v.escala !== null) {
+        // Calcular desde el tamaño actual por auto-escala
+        const letra = document.getElementById('letra');
+        autoEscalar();   // establece el tamaño base
+        const base = parseFloat(letra.style.fontSize) || 1.4;
+        cfg.font_size = Math.round(base * v.escala * 100) / 100;
+        letra.style.fontSize = cfg.font_size + 'rem';
+        actualizarBtn('btn-auto', false);
+    } else {
+        cfg.font_size = null;
+    }
+    aplicarConfig();
+    marcarSucioPDF();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Estado "guardado / sucio"
+// ─────────────────────────────────────────────────────────────────────────────
+function marcarSucioPDF() {
+    const e = document.getElementById('barra-estado');
+    if (e) { e.textContent = 'sin guardar'; e.className = 'barra-estado'; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Anclar / Proponer (guardar en servidor)
+// ─────────────────────────────────────────────────────────────────────────────
+function anclar(comoGlobal) {
+    const url = comoGlobal
+        ? '/api/pdf-proponer/' + CANCION_ID
+        : '/api/pdf-anclar/'  + CANCION_ID;
+
+    const payload = {
+        font_size:       cfg.font_size,
+        quiebre_ln:      cfg.quiebre_ln,
+        margen:          cfg.margen,
+        mostrar_acordes: cfg.mostrar_acordes,
+        columnas:        cfg.columnas,
+    };
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        const e = document.getElementById('barra-estado');
+        if (d.ok) {
+            e.textContent  = d.global ? '🌐 global' : '📌 anclado';
+            e.className    = 'barra-estado ' + (d.global ? 'propuesto' : 'guardado');
+        } else {
+            e.textContent = '❌ ' + (d.error || 'error');
+            e.className = 'barra-estado';
+        }
+    })
+    .catch(function() {
+        document.getElementById('barra-estado').textContent = '❌ sin red';
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pantalla completa: Ctrl+L
+// ─────────────────────────────────────────────────────────────────────────────
+function toggleFS() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(autoEscalar).catch(function() {});
+    } else {
+        document.exitFullscreen().then(autoEscalar).catch(function() {});
+    }
+}
+
+document.addEventListener('fullscreenchange', function() {
+    if (!cfg.font_size) autoEscalar();
+});
+document.addEventListener('webkitfullscreenchange', function() {
+    if (!cfg.font_size) autoEscalar();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) {
+        e.preventDefault();
+        toggleFS();
+    }
+    if (e.key === 'Escape' && modoQuiebre) {
+        modoQuiebre = false;
+        document.body.classList.remove('modo-quiebre');
+        const btn = document.getElementById('btn-quiebre');
+        if (btn) btn.classList.remove('modo-quiebre');
+        marcarSucioPDF();
+    }
+});
+
+// Cerrar overlay de variantes con Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') cerrarVariantes();
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────────────────────────────────────
+document.fonts.ready.then(function() {
+    aplicarConfig();
+});
+window.addEventListener('resize', function() {
+    if (!cfg.font_size) autoEscalar();
+});
+
+// Mostrar estado inicial si ya hay config guardada
+{% if pdf_cfg %}
+(function() {
+    const e = document.getElementById('barra-estado');
+    if (e) {
+        e.textContent = '{% if pdf_cfg.es_global %}🌐 global{% else %}📌 anclado{% endif %}';
+        e.className   = 'barra-estado {% if pdf_cfg.es_global %}propuesto{% else %}guardado{% endif %}';
+    }
+})();
+{% endif %}
+</script>
 </body>
 </html>
