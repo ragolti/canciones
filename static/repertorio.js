@@ -319,6 +319,9 @@ function repGuardarHistorial() {
         .then(function (r) { return r.json(); })
         .then(function (d) {
             if (d.ok) {
+                // Al guardar una nueva lista, ya no hay una "lista activa" cargada
+                localStorage.removeItem('adoremos_lista_activa_id');
+                localStorage.removeItem('adoremos_lista_activa_nombre');
                 window.location = "/historial?tipo=" + tipo;
             } else {
                 alert(d.error || "No se pudo guardar la lista.");

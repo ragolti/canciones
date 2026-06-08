@@ -72,37 +72,63 @@ document.addEventListener("click", function (e) {
 // ── Modal picker de listas futuras ───────────────────────────────────────────
 function abrirModalSug() {
     var c = _sugCancionPendiente;
-    document.getElementById("sug-modal-cancion").textContent =
-        "«" + c.titulo + (c.tono ? "  · " + c.tono : "") + "»";
-    var opcDiv = document.getElementById("sug-modal-opciones");
-    opcDiv.innerHTML = '<p class="sug-modal-cargando">⏳ Cargando listas…</p>';
-    document.getElementById("sug-modal-fondo").style.display = "flex";
 
+    // ¿Hay una lista activa cargada? (se guarda al hacer "Usar esta lista" en historial)
+    var activaId     = localStorage.getItem('adoremos_lista_activa_id');
+    var activaNombre = localStorage.getItem('adoremos_lista_activa_nombre') || 'lista activa';
+    if (activaId) {
+        agregarALista(Number(activaId), null, activaNombre);
+        return;  // va directo, sin abrir modal
+    }
+
+    // Si no hay lista activa, cargar las futuras y decidir
     fetch("/api/listas-futuras")
         .then(function (r) { return r.json(); })
         .then(function (listas) {
-            if (!listas.length) {
-                opcDiv.innerHTML =
-                    '<p class="sug-modal-vacio">No tenés listas futuras guardadas.<br>' +
-                    'Primero creá una desde el panel 🎵 y guardala como <strong>🗓️ Futura</strong>.</p>' +
-                    '<hr><button class="sug-modal-opc sug-modal-opc-panel" onclick="agregarAlPanel()">📋 Agregar al panel actual</button>';
+            if (listas.length === 1) {
+                // Solo hay una lista futura → agregar directo sin picker
+                agregarALista(listas[0].id, null, listas[0].nombre);
                 return;
             }
-            var html = "";
-            listas.forEach(function (l) {
-                var fecha = l.fecha_evento ? "  " + l.fecha_evento.split("-").reverse().join("/") : "";
-                html += '<button class="sug-modal-opc" onclick="agregarALista(' + l.id + ', this)">' +
-                        '🗓️ <strong>' + escHtml(l.nombre) + '</strong>' +
-                        (fecha ? '<span class="sug-modal-fecha">' + fecha + '</span>' : '') +
-                        '<span class="sug-modal-cant">' + l.canciones + ' canciones</span>' +
-                        '</button>';
-            });
-            html += '<hr><button class="sug-modal-opc sug-modal-opc-panel" onclick="agregarAlPanel()">📋 Agregar al panel actual (sin guardar)</button>';
-            opcDiv.innerHTML = html;
+            // 0 listas o más de 1 → mostrar modal
+            mostrarModalSug(listas);
         })
         .catch(function () {
-            opcDiv.innerHTML = '<p>⚠️ No se pudieron cargar las listas. <button class="btn btn-chico" onclick="abrirModalSug()">Reintentar</button></p>';
+            // Si falla la carga, abrir el modal con error
+            mostrarModalSug(null);
         });
+}
+
+function mostrarModalSug(listas) {
+    var c = _sugCancionPendiente;
+    document.getElementById("sug-modal-cancion").textContent =
+        "«" + c.titulo + (c.tono ? "  · " + c.tono : "") + "»";
+    var opcDiv = document.getElementById("sug-modal-opciones");
+
+    if (listas === null) {
+        opcDiv.innerHTML =
+            '<p>⚠️ No se pudieron cargar las listas. ' +
+            '<button class="btn btn-chico" onclick="abrirModalSug()">Reintentar</button></p>';
+    } else if (!listas.length) {
+        opcDiv.innerHTML =
+            '<p class="sug-modal-vacio">No tenés listas futuras guardadas.<br>' +
+            'Primero creá una desde el panel 🎵 y guardala como <strong>🗓️ Futura</strong>.</p>' +
+            '<hr><button class="sug-modal-opc sug-modal-opc-panel" onclick="agregarAlPanel()">📋 Agregar al panel actual</button>';
+    } else {
+        var html = "";
+        listas.forEach(function (l) {
+            var fecha = l.fecha_evento ? l.fecha_evento.split("-").reverse().join("/") : "";
+            html += '<button class="sug-modal-opc" onclick="agregarALista(' + l.id + ', this, \'' + escAttr(l.nombre) + '\')">' +
+                    '🗓️ <strong>' + escHtml(l.nombre) + '</strong>' +
+                    (fecha ? '<span class="sug-modal-fecha">📅 ' + fecha + '</span>' : '') +
+                    '<span class="sug-modal-cant">' + l.canciones + ' canciones</span>' +
+                    '</button>';
+        });
+        html += '<hr><button class="sug-modal-opc sug-modal-opc-panel" onclick="agregarAlPanel()">📋 Agregar al panel actual (sin guardar)</button>';
+        opcDiv.innerHTML = html;
+    }
+
+    document.getElementById("sug-modal-fondo").style.display = "flex";
 }
 
 function cerrarModalSug(e) {
@@ -113,11 +139,14 @@ function cerrarModalSug(e) {
 }
 
 // Agregar a una lista futura guardada.
-function agregarALista(listaId, btnOpc) {
+// btnOpc: el botón del modal (puede ser null si se fue directo sin modal).
+// nombreLista: nombre de la lista para mostrar en el feedback.
+function agregarALista(listaId, btnOpc, nombreLista) {
     var c = _sugCancionPendiente;
     if (!c) return;
-    btnOpc.disabled = true;
-    btnOpc.textContent = "⏳ Agregando…";
+    if (btnOpc) { btnOpc.disabled = true; btnOpc.textContent = "⏳ Agregando…"; }
+    if (c.btn)  { c.btn.disabled = true;  c.btn.textContent = "⏳…"; }
+
     fetch("/api/listas/" + listaId + "/agregar-cancion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -126,23 +155,24 @@ function agregarALista(listaId, btnOpc) {
     .then(function (r) { return r.json(); })
     .then(function (d) {
         if (d.ok) {
-            btnOpc.textContent = "✓ Agregada (" + d.total + " canciones)";
-            if (c.btn) { c.btn.textContent = "✓ en lista"; c.btn.disabled = true; }
-            setTimeout(function () {
-                document.getElementById("sug-modal-fondo").style.display = "none";
-                _sugCancionPendiente = null;
-            }, 900);
+            var etiqueta = nombreLista ? "✓ en «" + nombreLista + "»" : "✓ agregada";
+            if (c.btn) { c.btn.textContent = etiqueta; c.btn.disabled = true; }
+            document.getElementById("sug-modal-fondo").style.display = "none";
+            _sugCancionPendiente = null;
         } else if (d.ya_estaba) {
-            btnOpc.textContent = "Ya estaba en esa lista";
-            btnOpc.disabled = false;
+            if (c.btn) { c.btn.textContent = "Ya estaba"; c.btn.disabled = true; }
+            if (btnOpc) { btnOpc.textContent = "Ya estaba en esa lista"; btnOpc.disabled = false; }
+            else { document.getElementById("sug-modal-fondo").style.display = "none"; _sugCancionPendiente = null; }
         } else {
-            btnOpc.textContent = "⚠️ Error – reintentar";
-            btnOpc.disabled = false;
+            if (c.btn) { c.btn.textContent = "➕ A la lista"; c.btn.disabled = false; }
+            if (btnOpc) { btnOpc.textContent = "⚠️ Error – reintentar"; btnOpc.disabled = false; }
+            else alert("No se pudo agregar la canción. Intentá de nuevo.");
         }
     })
     .catch(function () {
-        btnOpc.textContent = "⚠️ Error – reintentar";
-        btnOpc.disabled = false;
+        if (c.btn) { c.btn.textContent = "➕ A la lista"; c.btn.disabled = false; }
+        if (btnOpc) { btnOpc.textContent = "⚠️ Error – reintentar"; btnOpc.disabled = false; }
+        else alert("Error de red. Intentá de nuevo.");
     });
 }
 

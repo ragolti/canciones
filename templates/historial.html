@@ -176,6 +176,9 @@ function usarLista(id) {
     var l = LISTAS.find(function (x) { return x.id === id; });
     if (!l) return;
     repCargarLista(l.canciones || []);
+    // Guardar qué lista está activa para que Sugerencias pueda agregarle canciones directo.
+    localStorage.setItem('adoremos_lista_activa_id',     String(id));
+    localStorage.setItem('adoremos_lista_activa_nombre', l.nombre || '');
     window.location = "/";
 }
 

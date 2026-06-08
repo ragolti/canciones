@@ -693,7 +693,7 @@ def agregar_cancion_a_lista(lista_id, cancion):
         "tono":   cancion.get("tono", ""),
     })
     _ejecutar(
-        "UPDATE listas SET canciones_json = ?, modificada_en = CURRENT_TIMESTAMP WHERE id = ?",
+        "UPDATE listas SET canciones_json = ? WHERE id = ?",
         (json.dumps(canciones, ensure_ascii=False), lista_id),
     )
     return True, len(canciones)
