@@ -59,14 +59,24 @@
 {% endif %}
 
 <!-- Barra de Clasificación / Comandos -->
-<div class="cmds-barra">
-    <button class="cmds-toggle-btn" id="btn-comandos" onclick="toggleComandos()"
-            title="Activar para ver y editar función, estilo y tempo de cada canción">
-        <span class="cmds-icono">🏷</span>
-        <span class="cmds-texto">Clasificar canciones</span>
-        <span class="cmds-pill" id="cmds-estado">OFF</span>
-    </button>
-    <span class="cmds-ayuda">← tocá para editar tempo, estilo, función de cada canción</span>
+<div class="cmds-barra" id="cmds-barra">
+    <div class="cmds-barra-izq">
+        <button class="cmds-toggle-btn" id="btn-comandos" onclick="toggleComandos()"
+                title="Activar para ver y editar función, estilo y tempo de cada canción">
+            <span class="cmds-icono">🏷</span>
+            <span class="cmds-texto">Clasificar canciones</span>
+            <span class="cmds-pill" id="cmds-estado">OFF</span>
+        </button>
+        <span class="cmds-ayuda" id="cmds-ayuda">← tocá para editar tempo, estilo, función de cada canción</span>
+    </div>
+    <div class="cmds-barra-der" id="cmds-barra-der" style="display:none">
+        <button class="cmds-btn-sinclasif" id="btn-sinclasif" onclick="toggleSinClasif()"
+                title="Mostrar solo las canciones que todavía no tienen función, estilo ni tempo asignado">
+            <span class="cmds-pill" id="sinclasif-pill">OFF</span>
+            🔍 Solo sin clasificar
+        </button>
+        <span class="sinclasif-contador" id="sinclasif-contador"></span>
+    </div>
 </div>
 
 {% if total > 0 %}
@@ -193,12 +203,23 @@
 
 <script>
     // ── Modo Comandos: muestra/oculta las secciones de clasificación ────────
-    var CMDS_KEY = 'adoremos_comandos';
+    var CMDS_KEY        = 'adoremos_comandos';
+    var SINCLASIF_KEY   = 'adoremos_sinclasif';
+    var _sinClasifActivo = false;
+
     function toggleComandos() {
         var activo = localStorage.getItem(CMDS_KEY) === '1';
-        localStorage.setItem(CMDS_KEY, activo ? '0' : '1');
-        aplicarComandos(!activo);
+        var nuevo = !activo;
+        localStorage.setItem(CMDS_KEY, nuevo ? '1' : '0');
+        // Al desactivar comandos, también desactivar "solo sin clasificar"
+        if (!nuevo && _sinClasifActivo) {
+            _sinClasifActivo = false;
+            localStorage.setItem(SINCLASIF_KEY, '0');
+            mostrarTodas();
+        }
+        aplicarComandos(nuevo);
     }
+
     function aplicarComandos(activo) {
         document.querySelectorAll('.cmds-area').forEach(function(el) {
             el.style.display = activo ? '' : 'none';
@@ -209,13 +230,98 @@
         if (btn) {
             btn.classList.toggle('activo', activo);
             var txt = btn.querySelector('.cmds-texto');
-            if (txt) txt.textContent = activo ? 'Clasificando canciones · tocá para terminar' : 'Clasificar canciones';
+            if (txt) txt.textContent = activo
+                ? 'Clasificando canciones · tocá para terminar'
+                : 'Clasificar canciones';
+        }
+        // Mostrar u ocultar la mitad derecha con el botón "Solo sin clasificar"
+        var der = document.getElementById('cmds-barra-der');
+        if (der) der.style.display = activo ? '' : 'none';
+        // Actualizar la barra para que quede en dos columnas cuando está activo
+        var barra = document.getElementById('cmds-barra');
+        if (barra) barra.classList.toggle('activo', activo);
+        // Ayuda: ocultar cuando está activo (ya no hace falta)
+        var ayuda = document.getElementById('cmds-ayuda');
+        if (ayuda) ayuda.style.display = activo ? 'none' : '';
+    }
+
+    // ── Filtro "Solo sin clasificar" ─────────────────────────────────────────
+    function toggleSinClasif() {
+        _sinClasifActivo = !_sinClasifActivo;
+        localStorage.setItem(SINCLASIF_KEY, _sinClasifActivo ? '1' : '0');
+        aplicarSinClasif(_sinClasifActivo);
+    }
+
+    function aplicarSinClasif(activo) {
+        _sinClasifActivo = activo;
+        var pill = document.getElementById('sinclasif-pill');
+        var btn  = document.getElementById('btn-sinclasif');
+        if (pill) pill.textContent = activo ? 'ON' : 'OFF';
+        if (btn)  btn.classList.toggle('activo', activo);
+
+        if (activo) {
+            filtrarSinClasif();
+        } else {
+            mostrarTodas();
         }
     }
+
+    // Oculta las canciones que ya tienen al menos uno de: función, estilo o tempo.
+    function filtrarSinClasif() {
+        var sinClasif = 0, conClasif = 0;
+        document.querySelectorAll('.lista-canciones li').forEach(function(li) {
+            // Una canción está clasificada si tiene algún clasif-btn activo
+            // en los grupos de función, estilo o tempo (no YouTube)
+            var clasif = li.querySelector('.clasif');
+            var tieneClasif = false;
+            if (clasif) {
+                // Buscar botones activos excluyendo el de YouTube y el de borrar
+                tieneClasif = !!clasif.querySelector(
+                    '.clasif-btn.activo:not(.yt-add)'
+                );
+            }
+            if (tieneClasif) {
+                li.setAttribute('data-oculto-sinclasif', '1');
+                li.style.display = 'none';
+                conClasif++;
+            } else {
+                li.removeAttribute('data-oculto-sinclasif');
+                li.style.display = '';
+                sinClasif++;
+            }
+        });
+        // Actualizar contador
+        var cnt = document.getElementById('sinclasif-contador');
+        if (cnt) cnt.textContent = sinClasif + ' sin clasificar · ' + conClasif + ' ya clasificadas';
+        // Ocultar grupos vacíos
+        actualizarGruposVacios();
+    }
+
+    function mostrarTodas() {
+        document.querySelectorAll('.lista-canciones li').forEach(function(li) {
+            li.removeAttribute('data-oculto-sinclasif');
+            li.style.display = '';
+        });
+        var cnt = document.getElementById('sinclasif-contador');
+        if (cnt) cnt.textContent = '';
+        actualizarGruposVacios();
+    }
+
+    // Oculta los <details class="grupo"> que no tienen ningún <li> visible.
+    function actualizarGruposVacios() {
+        document.querySelectorAll('.grupo').forEach(function(grupo) {
+            var hayVisible = !!grupo.querySelector('.lista-canciones li:not([data-oculto-sinclasif])');
+            grupo.style.display = hayVisible ? '' : 'none';
+        });
+    }
+
     // Aplicar estado guardado al cargar
     (function() {
         var activo = localStorage.getItem(CMDS_KEY) === '1';
         aplicarComandos(activo);
+        if (activo && localStorage.getItem(SINCLASIF_KEY) === '1') {
+            aplicarSinClasif(true);
+        }
     })();
 
     // Filtro instantáneo del índice (sin recargar la página).

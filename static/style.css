@@ -1188,6 +1188,23 @@ footer {
     margin: 4px 0 14px;
     flex-wrap: wrap;
 }
+/* Cuando el modo está activo: dos mitades */
+.cmds-barra.activo {
+    justify-content: space-between;
+}
+.cmds-barra-izq {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.cmds-barra-der {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
 
 /* Botón principal: chip gris cuando OFF, verde cuando ON */
 .cmds-toggle-btn {
@@ -1242,6 +1259,49 @@ footer {
 /* En móvil ocultar el texto ayuda para no ocupar espacio */
 @media (max-width: 500px) {
     .cmds-ayuda { display: none; }
+}
+
+/* Botón "Solo sin clasificar" — mismo estilo base que cmds-toggle-btn */
+.cmds-btn-sinclasif {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    border-radius: 24px;
+    border: 2px solid var(--gris-borde);
+    background: var(--card);
+    color: var(--texto-suave);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all .2s;
+    line-height: 1;
+    white-space: nowrap;
+}
+.cmds-btn-sinclasif:hover {
+    border-color: #f59e0b;
+    color: #f59e0b;
+    background: rgba(245,158,11,.08);
+}
+.cmds-btn-sinclasif.activo {
+    border-color: #f59e0b;
+    background: rgba(245,158,11,.12);
+    color: #b45309;
+}
+.cmds-btn-sinclasif.activo .cmds-pill {
+    background: #f59e0b;
+    color: #fff;
+}
+/* Contador "X sin clasificar · Y ya clasificadas" */
+.sinclasif-contador {
+    font-size: 0.78rem;
+    color: var(--texto-suave);
+    white-space: nowrap;
+}
+@media (max-width: 600px) {
+    .sinclasif-contador { display: none; }
+    .cmds-barra.activo { flex-direction: column; align-items: flex-start; }
+    .cmds-barra-der { width: 100%; }
 }
 
 /* Botón PDF por canción en la lista */
