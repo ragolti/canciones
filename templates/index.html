@@ -266,25 +266,27 @@
         }
     }
 
-    // Oculta las canciones que ya tienen al menos uno de: función, estilo o tempo.
+    // Muestra solo las canciones que les falta al menos una de: función, estilo o tempo.
     function filtrarSinClasif() {
         var sinClasif = 0, conClasif = 0;
         document.querySelectorAll('.lista-canciones li').forEach(function(li) {
-            // Una canción está clasificada si tiene algún clasif-btn activo
-            // en los grupos de función, estilo o tempo (no YouTube)
             var clasif = li.querySelector('.clasif');
-            var tieneClasif = false;
+            // Una canción está completamente clasificada solo si tiene
+            // los TRES campos asignados: función, estilo (categoría) y tempo.
+            var completa = false;
             if (clasif) {
-                // Buscar botones activos excluyendo el de YouTube y el de borrar
-                tieneClasif = !!clasif.querySelector(
-                    '.clasif-btn.activo:not(.yt-add)'
-                );
+                var tieneFuncion  = !!clasif.querySelector('.clasif-btn.activo[data-campo="funcion"]');
+                var tieneEstilo   = !!clasif.querySelector('.clasif-btn.activo[data-campo="categoria"]');
+                var tieneTempo    = !!clasif.querySelector('.clasif-btn.activo[data-campo="tempo"]');
+                completa = tieneFuncion && tieneEstilo && tieneTempo;
             }
-            if (tieneClasif) {
+            if (completa) {
+                // Ya tiene todo → ocultar en este modo
                 li.setAttribute('data-oculto-sinclasif', '1');
                 li.style.display = 'none';
                 conClasif++;
             } else {
+                // Le falta algo → mostrar para que se pueda clasificar
                 li.removeAttribute('data-oculto-sinclasif');
                 li.style.display = '';
                 sinClasif++;
