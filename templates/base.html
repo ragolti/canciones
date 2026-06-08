@@ -80,9 +80,15 @@
     <aside id="rep-panel" class="rep-panel">
         <div class="rep-cabecera">
             <strong>🎵 Lista del evento</strong>
-            <button class="rep-cerrar" onclick="repToggle()" title="Cerrar">✕</button>
+            <div class="rep-cab-acciones">
+                {% if usuario_actual %}
+                <button class="btn btn-nueva btn-chico rep-btn-guardar" onclick="repGuardarHistorial()" title="Guardar esta lista con fecha de evento">💾 Guardar lista</button>
+                {% endif %}
+                <button class="rep-cerrar" onclick="repToggle()" title="Cerrar">✕</button>
+            </div>
         </div>
         <ul id="rep-items" class="rep-lista"></ul>
+        <p class="rep-drag-ayuda">⠿ Arrastrá desde el ícono para reordenar · ▲▼ para mover de a uno</p>
         <div class="rep-opciones">
             <label>Estilo
                 <select id="rep-estilo">

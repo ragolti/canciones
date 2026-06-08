@@ -11,11 +11,11 @@
             {% for e in estilos %}<option value="{{ e }}" {% if e==estilo %}selected{% endif %}>{{ e }}</option>{% endfor %}
         </select>
     </label>
-    <span class="contador">{{ sugeridas|length }} sugerencia(s)</span>
+    <span class="contador" id="sug-contador">{{ sugeridas|length }} sugerencia(s)</span>
 </form>
 
 {% if sugeridas %}
-    <ol class="hist-canciones sugerencias-lista">
+    <ol class="hist-canciones sugerencias-lista" id="sug-lista">
         {% for c in sugeridas %}
             <li>
                 {% if c['tono'] %}<span class="rep-tono">{{ c['tono'] }}</span>{% endif %}
@@ -25,24 +25,94 @@
             </li>
         {% endfor %}
     </ol>
-    <button class="btn btn-nueva" onclick="agregarTodasSug()" style="margin-top:10px;">➕ Agregar todas a la lista del evento</button>
+
+    <div class="sug-pie">
+        <button class="btn btn-nueva" onclick="agregarTodasSug()">➕ Agregar todas a la lista del evento</button>
+        <button class="btn btn-gris" id="btn-mas-sug" onclick="masSugerencias()">📥 10 más sugerencias</button>
+    </div>
+
 {% else %}
     <p class="hist-vacio">No hay sugerencias para ese estilo (puede que ya las hayas cantado todas 🎉).</p>
 {% endif %}
 
 <script>
+// Offset para paginación: empieza después de las ya mostradas.
+var sugOffset = {{ sugeridas|length }};
+var sugEstilo = {{ estilo | tojson }};
+var sugTotal  = {{ sugeridas|length }};  // para actualizar el contador
+
 // Agregar una sugerencia a la lista del evento.
 document.addEventListener("click", function (e) {
     const b = e.target.closest(".btn-agregar-sug");
     if (!b) return;
     repAgregar(Number(b.dataset.id), b.dataset.titulo, b.dataset.tono);
     b.textContent = "✓ agregada";
+    b.disabled = true;
 });
+
 function agregarTodasSug() {
     document.querySelectorAll(".btn-agregar-sug").forEach(function (b) {
+        if (b.disabled) return;
         repAgregar(Number(b.dataset.id), b.dataset.titulo, b.dataset.tono);
         b.textContent = "✓ agregada";
+        b.disabled = true;
     });
+}
+
+// Cargar 10 sugerencias más (paginadas).
+function masSugerencias() {
+    var btn = document.getElementById("btn-mas-sug");
+    btn.disabled = true;
+    btn.textContent = "⏳ Cargando…";
+
+    var url = "/api/sugerencias-mas?offset=" + sugOffset;
+    if (sugEstilo) url += "&estilo=" + encodeURIComponent(sugEstilo);
+
+    fetch(url)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data.length) {
+                btn.textContent = "✓ No hay más sugerencias";
+                btn.disabled = true;
+                return;
+            }
+
+            sugOffset += data.length;
+            sugTotal  += data.length;
+
+            var lista = document.getElementById("sug-lista");
+            data.forEach(function (c) {
+                var li = document.createElement("li");
+                li.innerHTML =
+                    (c.tono ? '<span class="rep-tono">' + escHtml(c.tono) + "</span> " : "") +
+                    '<a href="/cancion/' + c.id + '">' + escHtml(c.titulo) + "</a>" +
+                    ' <button type="button" class="btn btn-chico btn-agregar-sug"' +
+                    ' data-id="' + c.id + '"' +
+                    ' data-titulo="' + escAttr(c.titulo) + '"' +
+                    ' data-tono="' + escAttr(c.tono || "") + '">➕ a la lista</button>';
+                lista.appendChild(li);
+            });
+
+            // Actualizar contador
+            var cnt = document.getElementById("sug-contador");
+            if (cnt) cnt.textContent = sugTotal + " sugerencia(s)";
+
+            btn.disabled = false;
+            btn.textContent = "📥 10 más sugerencias";
+        })
+        .catch(function () {
+            btn.disabled = false;
+            btn.textContent = "⚠️ Reintentar";
+        });
+}
+
+function escHtml(s) {
+    var d = document.createElement("div");
+    d.textContent = String(s || "");
+    return d.innerHTML;
+}
+function escAttr(s) {
+    return String(s || "").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 </script>
 {% endblock %}
