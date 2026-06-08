@@ -58,13 +58,15 @@
 </div>
 {% endif %}
 
-<!-- Barra de Comandos -->
+<!-- Barra de Clasificación / Comandos -->
 <div class="cmds-barra">
-    <button class="btn btn-chico" id="btn-comandos" onclick="toggleComandos()"
-            title="Mostrar u ocultar botones de clasificación en cada canción">
-        ⚙ Comandos: <span id="cmds-estado"></span>
+    <button class="cmds-toggle-btn" id="btn-comandos" onclick="toggleComandos()"
+            title="Activar para ver y editar función, estilo y tempo de cada canción">
+        <span class="cmds-icono">🏷</span>
+        <span class="cmds-texto">Clasificar canciones</span>
+        <span class="cmds-pill" id="cmds-estado">OFF</span>
     </button>
-    <span class="cmds-ayuda">Activalo para clasificar tempo, estilo, etc.</span>
+    <span class="cmds-ayuda">← tocá para editar tempo, estilo, función de cada canción</span>
 </div>
 
 {% if total > 0 %}
@@ -191,10 +193,14 @@
         document.querySelectorAll('.cmds-area').forEach(function(el) {
             el.style.display = activo ? '' : 'none';
         });
-        var estado = document.getElementById('cmds-estado');
-        if (estado) estado.textContent = activo ? 'ON' : 'OFF';
+        var pill = document.getElementById('cmds-estado');
+        if (pill) pill.textContent = activo ? 'ON' : 'OFF';
         var btn = document.getElementById('btn-comandos');
-        if (btn) btn.classList.toggle('activo', activo);
+        if (btn) {
+            btn.classList.toggle('activo', activo);
+            var txt = btn.querySelector('.cmds-texto');
+            if (txt) txt.textContent = activo ? 'Clasificando canciones · tocá para terminar' : 'Clasificar canciones';
+        }
     }
     // Aplicar estado guardado al cargar
     (function() {
