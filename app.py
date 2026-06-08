@@ -910,9 +910,9 @@ def api_proxima_lista():
             "fecha_evento": (l.get("fecha_evento") or "")[:10],
             "canciones":    canciones,
         })
-    except Exception:
-        # En caso de error, devolver el traceback como JSON para poder depurar
-        return jsonify({"_error": _tb.format_exc()}), 500
+    except Exception as _e:
+        # Devolver tipo + mensaje de excepción para poder depurar
+        return jsonify({"_error": type(_e).__name__ + ": " + str(_e)}), 500
 
 
 @app.route("/api/listas/<int:lista_id>/agregar-cancion", methods=["POST"])
