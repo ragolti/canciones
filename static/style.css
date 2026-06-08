@@ -1027,6 +1027,8 @@ footer {
 .hist-item-top { display: flex; justify-content: space-between; align-items: center; }
 .hist-nombre { font-weight: 600; }
 .hist-meta { color: var(--texto-suave); font-size: 0.82rem; margin-top: 4px; }
+.hist-fecha-evento { font-size: 0.85rem; margin-top: 6px; color: var(--texto-suave); }
+.hfe-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 
 .hist-detalle {
     background: var(--card);

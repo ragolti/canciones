@@ -118,7 +118,17 @@ function verLista(id) {
     var html = '<div class="hist-detalle-cab">';
     html += '<h2>' + escaparH(l.nombre) + '</h2>';
     html += '<div class="hist-meta">👤 ' + escaparH(l.usuario || "—");
-    if (l.creada_en) html += ' · 📅 ' + escaparH(l.creada_en.slice(0, 10));
+    if (l.creada_en) html += ' · 🗓 creada: ' + escaparH(l.creada_en.slice(0, 10));
+    // Mostrar fecha del evento con botón de edición
+    var fechaEvMostrar = (l.fecha_evento || '').slice(0, 10);
+    html += '<div class="hist-fecha-evento" id="hfe-' + id + '">';
+    if (fechaEvMostrar) {
+        html += '📅 Evento: <strong>' + fechaEvMostrar.split('-').reverse().join('/') + '</strong>';
+    } else {
+        html += '📅 Sin fecha de evento';
+    }
+    html += ' <button class="btn btn-chico btn-gris" onclick="editarFechaLista(' + id + ')">' +
+            '✏️ Editar</button></div>';
     html += '</div></div>';
 
     html += '<ol class="hist-canciones">';
@@ -170,6 +180,75 @@ function verLista(id) {
     html += '</div>';
 
     cont.innerHTML = html;
+}
+
+// Muestra un editor inline de fecha del evento para una lista.
+function editarFechaLista(id) {
+    var l = LISTAS.find(function (x) { return x.id === id; });
+    if (!l) return;
+    var div = document.getElementById('hfe-' + id);
+    if (!div) return;
+    var fechaActual = (l.fecha_evento || '').slice(0, 10);
+    var esFutura = l.tipo === 'futura';
+    div.innerHTML =
+        '<form class="hfe-form" onsubmit="guardarFechaLista(' + id + ', event)">' +
+        '<input type="date" id="hfe-input-' + id + '" value="' + escaparH(fechaActual) + '" ' +
+        'style="font-size:0.95rem;padding:4px 8px;border-radius:6px;border:1px solid var(--gris-borde);">' +
+        '<label style="font-size:0.85rem;color:var(--texto-suave);white-space:nowrap;">' +
+        '<input type="checkbox" id="hfe-tipo-' + id + '" ' + (esFutura ? '' : 'checked') + '> ' +
+        (esFutura ? 'Mantener como Futura' : 'Mover a Futuras') +
+        '</label>' +
+        '<button type="submit" class="btn btn-chico btn-nueva">💾 Guardar</button>' +
+        '<button type="button" class="btn btn-chico btn-gris" onclick="verLista(' + id + ')">Cancelar</button>' +
+        '</form>';
+}
+
+function guardarFechaLista(id, e) {
+    e.preventDefault();
+    var input = document.getElementById('hfe-input-' + id);
+    var chkTipo = document.getElementById('hfe-tipo-' + id);
+    var fecha = input ? input.value : '';
+    var l = LISTAS.find(function (x) { return x.id === id; });
+    if (!l) return;
+
+    // Determinar nuevo tipo según el checkbox
+    var nuevoTipo = '';
+    if (chkTipo) {
+        if (l.tipo === 'futura') {
+            nuevoTipo = 'futura';  // siempre mantener futura si ya lo era
+        } else {
+            // Era histórica: si el checkbox "Mover a Futuras" está marcado → futura
+            nuevoTipo = chkTipo.checked ? 'futura' : 'historica';
+        }
+    }
+
+    fetch('/api/listas/' + id + '/fecha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha: fecha, tipo: nuevoTipo }),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+        if (d.ok) {
+            // Actualizar el objeto local y redibujar el detalle
+            l.fecha_evento = d.fecha_evento;
+            l.tipo = d.tipo;
+            verLista(id);
+            // Si cambió de tipo, también actualizar la visualización del ítem lateral
+            var item = document.getElementById('hist-item-' + id);
+            if (item) {
+                // Recargar la página para reflejar el cambio de pestaña
+                var tipoDestino = d.tipo;
+                if (tipoDestino !== FILTRO_TIPO) {
+                    // La lista cambió de pestaña → recargar en la pestaña correcta
+                    window.location = '/historial?tipo=' + tipoDestino;
+                }
+            }
+        } else {
+            alert(d.error || 'No se pudo guardar la fecha.');
+        }
+    })
+    .catch(function () { alert('Error de red. Intentá de nuevo.'); });
 }
 
 function usarLista(id) {

@@ -993,6 +993,31 @@ def cambiar_tipo_lista(lista_id):
     return redirect(url_for("historial", tipo=nuevo_tipo))
 
 
+@app.route("/api/listas/<int:lista_id>/fecha", methods=["POST"])
+@login_required
+def api_actualizar_fecha_lista(lista_id):
+    """API JSON: actualiza la fecha del evento de una lista.
+    Body JSON: { fecha: 'YYYY-MM-DD', tipo: 'futura'|'historica'|'' }
+    Si tipo no se pasa, no cambia el tipo actual.
+    """
+    datos = request.get_json(silent=True) or {}
+    fecha = (datos.get("fecha") or "").strip()
+    nuevo_tipo = datos.get("tipo", "").strip()
+    if nuevo_tipo not in ("futura", "historica", ""):
+        nuevo_tipo = ""
+    database.actualizar_fecha_evento(lista_id, fecha or None, nuevo_tipo or None)
+    # Devolver la lista actualizada para que el frontend pueda refrescar
+    lista = database.obtener_lista(lista_id)
+    if not lista:
+        return jsonify({"ok": False, "error": "Lista no encontrada"}), 404
+    return jsonify({
+        "ok": True,
+        "id": lista["id"],
+        "fecha_evento": (lista["fecha_evento"] or "")[:10],
+        "tipo": lista["tipo"],
+    })
+
+
 @app.route("/listas/<int:lista_id>/favorita", methods=["POST"])
 @login_required
 def favorita_lista(lista_id):

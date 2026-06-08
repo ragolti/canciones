@@ -671,6 +671,22 @@ def cambiar_tipo_lista(lista_id, tipo):
     _ejecutar("UPDATE listas SET tipo = ? WHERE id = ?", (tipo, lista_id))
 
 
+def actualizar_fecha_evento(lista_id, fecha, nuevo_tipo=None):
+    """Actualiza la fecha del evento de una lista.
+    Si nuevo_tipo se pasa ('futura' o 'historica'), cambia el tipo también.
+    """
+    if nuevo_tipo:
+        _ejecutar(
+            "UPDATE listas SET fecha_evento = ?, tipo = ? WHERE id = ?",
+            (fecha or None, nuevo_tipo, lista_id),
+        )
+    else:
+        _ejecutar(
+            "UPDATE listas SET fecha_evento = ? WHERE id = ?",
+            (fecha or None, lista_id),
+        )
+
+
 def agregar_cancion_a_lista(lista_id, cancion):
     """Agrega una canción a una lista existente si todavía no está.
     cancion: dict con al menos {id, titulo, tono}.
