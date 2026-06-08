@@ -55,7 +55,11 @@
         })();
     </script>
 
+    <!-- Contenedor de dos "páginas" horizontales con deslizamiento en móvil -->
+    <div class="vistas-h" id="vistas-h">
+
     <main class="{{ main_clase | default('') }}">
+      <div class="main-cont">
         {% with mensajes = get_flashed_messages() %}
             {% if mensajes %}
                 {% for mensaje in mensajes %}
@@ -70,7 +74,24 @@
         {% endif %}
 
         {% block contenido %}{% endblock %}
+      </div>
     </main>
+
+    {% if usuario_actual %}
+    <!-- Panel derecho: próxima lista futura (deslizá hacia la izquierda para verlo) -->
+    <aside class="panel-proxima-der" id="panel-proxima-der">
+        <div class="panel-prox-cab">
+            <span class="panel-prox-titulo">🗓️ Próximo evento</span>
+            <button class="panel-prox-volver btn btn-chico btn-gris"
+                    onclick="volverPanelIzq()" title="Volver al inicio">← Volver</button>
+        </div>
+        <div id="panel-prox-cuerpo" class="panel-prox-cuerpo">
+            <p class="panel-prox-cargando">⏳ Cargando…</p>
+        </div>
+    </aside>
+    {% endif %}
+
+    </div><!-- /vistas-h -->
 
     <footer>
         <p>Adoremos · cancionero de alabanza</p>
@@ -164,6 +185,89 @@
             <span class="bnav-label">{% if usuario_actual %}Ideas{% else %}Entrar{% endif %}</span>
         </a>
     </nav>
+
+    <script>
+    // ── Panel próxima lista (deslizable a la izquierda en móvil) ──────────────
+    (function() {
+        var panel = document.getElementById("panel-proxima-der");
+        if (!panel) return;   // usuario no logueado
+
+        function escH(s) {
+            var d = document.createElement("div");
+            d.textContent = String(s || "");
+            return d.innerHTML;
+        }
+
+        function renderizarProxima(lista) {
+            var cuerpo = document.getElementById("panel-prox-cuerpo");
+            if (!cuerpo) return;
+            if (!lista) {
+                cuerpo.innerHTML =
+                    '<p class="panel-prox-vacio">No tenés listas futuras guardadas.<br>' +
+                    'Creá una desde el panel 🎵 y guardala como <strong>🗓️ Futura</strong>.</p>';
+                // Ocultar el panel si no hay nada
+                var wrap = document.getElementById("vistas-h");
+                if (wrap) wrap.classList.add("sin-panel-der");
+                return;
+            }
+            var fecha = lista.fecha_evento
+                ? lista.fecha_evento.split("-").reverse().join("/")
+                : "sin fecha";
+            var html = '<div class="panel-prox-info">' +
+                       '<span class="panel-prox-nombre">' + escH(lista.nombre) + '</span>' +
+                       '<span class="panel-prox-fecha">📅 ' + fecha + '</span>' +
+                       '</div>';
+            if (lista.canciones && lista.canciones.length) {
+                html += '<ol class="panel-prox-canciones">';
+                lista.canciones.forEach(function(c) {
+                    var tono = c.tono
+                        ? '<span class="rep-tono">' + escH(c.tono) + '</span> '
+                        : '';
+                    html += '<li>' + tono + escH(c.titulo) + '</li>';
+                });
+                html += '</ol>';
+            } else {
+                html += '<p class="panel-prox-vacio">Esta lista aún no tiene canciones.</p>';
+            }
+            html += '<div class="panel-prox-acciones">' +
+                    '<button class="btn btn-nueva" onclick="usarListaPanel(' + lista.id + ')">' +
+                    '📋 Usar esta lista</button>' +
+                    '<a href="/historial?tipo=futura" class="btn btn-gris">📅 Ver todas</a>' +
+                    '</div>';
+            cuerpo.innerHTML = html;
+        }
+
+        // Cargar la próxima lista al arrancar
+        fetch("/api/proxima-lista")
+            .then(function(r) { return r.json(); })
+            .then(function(data) { renderizarProxima(data); })
+            .catch(function() {
+                var cuerpo = document.getElementById("panel-prox-cuerpo");
+                if (cuerpo) cuerpo.innerHTML =
+                    '<p class="panel-prox-vacio">No se pudo cargar la próxima lista.</p>';
+            });
+    })();
+
+    // Usar la lista del panel: cargar en el repertorio y volver a la izquierda
+    function usarListaPanel(id) {
+        fetch("/api/proxima-lista")
+            .then(function(r) { return r.json(); })
+            .then(function(lista) {
+                if (lista && lista.canciones) {
+                    localStorage.setItem('adoremos_lista_activa_id',     String(lista.id));
+                    localStorage.setItem('adoremos_lista_activa_nombre', lista.nombre || '');
+                    repCargarLista(lista.canciones);
+                }
+                volverPanelIzq();
+            });
+    }
+
+    // Volver al panel izquierdo (página principal)
+    function volverPanelIzq() {
+        var wrap = document.getElementById("vistas-h");
+        if (wrap) wrap.scrollTo({ left: 0, behavior: "smooth" });
+    }
+    </script>
 
     <script>
     // Sincronizar badge del bottom nav con el contador del repertorio flotante

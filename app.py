@@ -878,6 +878,37 @@ def api_listas_futuras():
     return jsonify(resultado)
 
 
+@app.route("/api/proxima-lista")
+def api_proxima_lista():
+    """API JSON: devuelve la lista futura con la fecha de evento más próxima (>=hoy).
+    Usada por el panel deslizable a la derecha en móvil."""
+    u = usuario_actual()
+    if not u:
+        return jsonify(None)
+    from datetime import date as _date
+    hoy = str(_date.today())
+    listas = database.listar_listas(usuario=u["usuario"], tipo="futura") or []
+    # Filtrar solo las que tienen fecha >= hoy, ordenar por fecha ascendente
+    futuras = [l for l in listas if (l.get("fecha_evento") or "") >= hoy]
+    if not futuras:
+        # Si no hay con fecha, tomar la primera de cualquier tipo futura
+        futuras = list(listas)
+    if not futuras:
+        return jsonify(None)
+    futuras.sort(key=lambda l: l.get("fecha_evento") or "9999")
+    l = futuras[0]
+    try:
+        canciones = json.loads(l["canciones_json"] or "[]")
+    except Exception:
+        canciones = []
+    return jsonify({
+        "id":           l["id"],
+        "nombre":       l["nombre"] or "",
+        "fecha_evento": (l.get("fecha_evento") or "")[:10],
+        "canciones":    canciones,
+    })
+
+
 @app.route("/api/listas/<int:lista_id>/agregar-cancion", methods=["POST"])
 def api_agregar_cancion_lista(lista_id):
     """API JSON: agrega una canción a una lista futura existente."""
