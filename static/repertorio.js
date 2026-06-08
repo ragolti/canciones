@@ -77,7 +77,8 @@ function repRender() {
             ? '<span class="rep-tono">' + escapeHtml(c.tono) + "</span>"
             : "";
         return (
-            "<li>" +
+            '<li draggable="true" data-idx="' + i + '">' +
+            '<span class="rep-drag-handle" title="Arrastrar para reordenar">⠿</span>' +
             '<span class="rep-num">' + (i + 1) + "</span>" +
             tono +
             '<a class="rep-titulo" href="/cancion/' + c.id + '">' +
@@ -89,6 +90,91 @@ function repRender() {
             "</span></li>"
         );
     }).join("");
+
+    // Activar drag & drop (escritorio y toque)
+    _repActivarDrag(cont);
+}
+
+// ── Drag & Drop para reordenar la lista ─────────────────────────────────────
+var _rdIdx = null;   // índice del ítem que se está arrastrando
+
+function _repActivarDrag(cont) {
+    var items = cont.querySelectorAll("li[data-idx]");
+
+    items.forEach(function (li) {
+        var idx = parseInt(li.dataset.idx, 10);
+
+        // ── Escritorio (HTML5 drag) ──────────────────────────────────────────
+        li.addEventListener("dragstart", function (e) {
+            _rdIdx = idx;
+            setTimeout(function () { li.style.opacity = "0.45"; }, 0);
+            e.dataTransfer.effectAllowed = "move";
+        });
+        li.addEventListener("dragend", function () {
+            li.style.opacity = "";
+            _rdLimpiarOver(cont);
+        });
+        li.addEventListener("dragover", function (e) {
+            e.preventDefault();
+            _rdLimpiarOver(cont);
+            if (_rdIdx !== idx) li.classList.add("drag-over");
+        });
+        li.addEventListener("drop", function (e) {
+            e.preventDefault();
+            _rdMoverA(idx);
+        });
+
+        // ── Móvil: arrastrar desde el handle (⠿) ────────────────────────────
+        var handle = li.querySelector(".rep-drag-handle");
+        if (!handle) return;
+
+        var _ty0 = 0;
+
+        handle.addEventListener("touchstart", function (e) {
+            _rdIdx = idx;
+            _ty0 = e.touches[0].clientY;
+            li.style.background = "rgba(255,255,255,0.07)";
+            li.style.boxShadow  = "0 4px 16px rgba(0,0,0,.5)";
+        }, { passive: true });
+
+        handle.addEventListener("touchmove", function (e) {
+            e.preventDefault();   // evitar scroll mientras arrastramos
+            var touch  = e.touches[0];
+            var target = document.elementFromPoint(touch.clientX, touch.clientY);
+            var over   = target && target.closest("li[data-idx]");
+            _rdLimpiarOver(cont);
+            if (over && over !== li) over.classList.add("drag-over");
+        }, { passive: false });
+
+        handle.addEventListener("touchend", function (e) {
+            li.style.background = "";
+            li.style.boxShadow  = "";
+            var touch  = e.changedTouches[0];
+            var target = document.elementFromPoint(touch.clientX, touch.clientY);
+            var over   = target && target.closest("li[data-idx]");
+            _rdLimpiarOver(cont);
+            if (over && over !== li) {
+                _rdMoverA(parseInt(over.dataset.idx, 10));
+            } else {
+                _rdIdx = null;
+            }
+        }, { passive: true });
+    });
+}
+
+function _rdLimpiarOver(cont) {
+    cont.querySelectorAll(".drag-over").forEach(function (x) {
+        x.classList.remove("drag-over");
+    });
+}
+
+function _rdMoverA(toIdx) {
+    if (_rdIdx === null || _rdIdx === toIdx) { _rdIdx = null; return; }
+    var lista = repCargar();
+    var moved = lista.splice(_rdIdx, 1)[0];
+    lista.splice(toIdx, 0, moved);
+    _rdIdx = null;
+    repGuardar(lista);
 }
 
 // Devuelve la fecha elegida formateada en español, ej: "Sábado 13 de junio".

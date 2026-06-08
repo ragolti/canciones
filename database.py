@@ -664,7 +664,7 @@ def borrar_lista(lista_id):
     _ejecutar("DELETE FROM listas WHERE id = ?", (lista_id,))
 
 
-def sugerencias(usuario, estilo=None, limite=10):
+def sugerencias(usuario, estilo=None, limite=10, offset=0):
     """Sugiere canciones poco/nada usadas según las listas del usuario.
 
     Prioriza las que NUNCA aparecieron en las listas del usuario; luego las que
@@ -696,7 +696,7 @@ def sugerencias(usuario, estilo=None, limite=10):
         f = ultima_vez.get(c["id"])
         return (f is not None, f or "")
     candidatas = sorted(canciones, key=clave)
-    return candidatas[:limite]
+    return candidatas[offset:offset + limite]
 
 
 def usuarios_de_listas():

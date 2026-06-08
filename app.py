@@ -834,6 +834,20 @@ def sugerencias():
     )
 
 
+@app.route("/api/sugerencias-mas")
+@login_required
+def api_sugerencias_mas():
+    """API JSON: devuelve el siguiente bloque de 10 sugerencias (paginadas)."""
+    u = usuario_actual()
+    estilo = request.args.get("estilo", "").strip()
+    try:
+        offset = max(0, int(request.args.get("offset", 0)))
+    except ValueError:
+        offset = 0
+    resultado = database.sugerencias(u["usuario"], estilo or None, 10, offset)
+    return jsonify([dict(c) for c in resultado])
+
+
 @app.route("/historial")
 def historial():
     """Historial de listas guardadas, con filtro por usuario, tipo y favoritas."""
