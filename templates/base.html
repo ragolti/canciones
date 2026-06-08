@@ -115,8 +115,8 @@
         <div class="rep-envio">
             <label>📅 Fecha del evento</label>
             <div class="rep-fecha-fila">
-                <input type="date" id="rep-fecha">
-                <button type="button" class="btn btn-chico" onclick="repAvanzarSabado()" title="Ir al sábado siguiente">→ sáb.</button>
+                <input type="date" id="rep-fecha" oninput="repActualizarDiaBtn()">
+                <button type="button" class="btn btn-chico" id="btn-dia-sig" onclick="repAvanzarSabado()" title="Avanzar al mismo día la semana siguiente">→ sáb.</button>
             </div>
             <label>📱 WhatsApp (uno o varios, separados por coma)
                 <input type="text" id="rep-telefonos" placeholder="Ej: 5493512345678, 5492611234567">

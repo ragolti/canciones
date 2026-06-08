@@ -177,14 +177,15 @@ function _rdMoverA(toIdx) {
     repGuardar(lista);
 }
 
-// ── Fecha del evento: próximo sábado ────────────────────────────────────────
+// ── Fecha del evento ─────────────────────────────────────────────────────────
+
+var _DIAS_ABREV = ["dom.", "lun.", "mar.", "mié.", "jue.", "vie.", "sáb."];
 
 // Devuelve el objeto Date del sábado más próximo a partir de `d`.
 // Si `d` ya es sábado, devuelve ese mismo día.
 function _calcSabado(d) {
     var dias = (6 - d.getDay() + 7) % 7;   // 0 si ya es sábado
-    var s = new Date(d.getFullYear(), d.getMonth(), d.getDate() + dias);
-    return s;
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + dias);
 }
 
 // Formatea un Date como "YYYY-MM-DD" para el input[type=date].
@@ -195,27 +196,37 @@ function _fechaISO(d) {
     return y + "-" + m + "-" + dd;
 }
 
+// Actualiza la etiqueta del botón "→ día" según el día de la fecha elegida.
+function repActualizarDiaBtn() {
+    var inp = document.getElementById("rep-fecha");
+    var btn = document.getElementById("btn-dia-sig");
+    if (!btn) return;
+    if (!inp || !inp.value) { btn.textContent = "→ sáb."; return; }
+    var d = new Date(inp.value + "T00:00:00");
+    btn.textContent = "→ " + _DIAS_ABREV[d.getDay()];
+}
+
 // Pone el próximo sábado en el campo de fecha (solo si está vacío).
 function repIniciarFecha() {
     var inp = document.getElementById("rep-fecha");
-    if (!inp || inp.value) return;
+    if (!inp || inp.value) { repActualizarDiaBtn(); return; }
     inp.value = _fechaISO(_calcSabado(new Date()));
+    repActualizarDiaBtn();
 }
 
-// Avanza la fecha al SIGUIENTE sábado (+7 días).
-// Si el campo tiene fecha, avanza desde ella; si no, parte de hoy.
+// Avanza la fecha +7 días (mismo día de la semana, semana siguiente).
 function repAvanzarSabado() {
     var inp = document.getElementById("rep-fecha");
     if (!inp) return;
     var base = inp.value
         ? new Date(inp.value + "T00:00:00")
         : new Date();
-    // +7 días para pasar al siguiente sábado
     var next = new Date(base.getFullYear(), base.getMonth(), base.getDate() + 7);
-    inp.value = _fechaISO(_calcSabado(next));
+    inp.value = _fechaISO(next);
+    repActualizarDiaBtn();
 }
 
-// ── Fin: Fecha del evento ────────────────────────────────────────────────────
+// ── Fin: Fecha del evento ─────────────────────────────────────────────────────
 
 // Devuelve la fecha elegida formateada en español, ej: "Sábado 13 de junio".
 // Si no se eligió fecha, devuelve cadena vacía.
