@@ -177,6 +177,46 @@ function _rdMoverA(toIdx) {
     repGuardar(lista);
 }
 
+// ── Fecha del evento: próximo sábado ────────────────────────────────────────
+
+// Devuelve el objeto Date del sábado más próximo a partir de `d`.
+// Si `d` ya es sábado, devuelve ese mismo día.
+function _calcSabado(d) {
+    var dias = (6 - d.getDay() + 7) % 7;   // 0 si ya es sábado
+    var s = new Date(d.getFullYear(), d.getMonth(), d.getDate() + dias);
+    return s;
+}
+
+// Formatea un Date como "YYYY-MM-DD" para el input[type=date].
+function _fechaISO(d) {
+    var y  = d.getFullYear();
+    var m  = String(d.getMonth() + 1).padStart(2, "0");
+    var dd = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + dd;
+}
+
+// Pone el próximo sábado en el campo de fecha (solo si está vacío).
+function repIniciarFecha() {
+    var inp = document.getElementById("rep-fecha");
+    if (!inp || inp.value) return;
+    inp.value = _fechaISO(_calcSabado(new Date()));
+}
+
+// Avanza la fecha al SIGUIENTE sábado (+7 días).
+// Si el campo tiene fecha, avanza desde ella; si no, parte de hoy.
+function repAvanzarSabado() {
+    var inp = document.getElementById("rep-fecha");
+    if (!inp) return;
+    var base = inp.value
+        ? new Date(inp.value + "T00:00:00")
+        : new Date();
+    // +7 días para pasar al siguiente sábado
+    var next = new Date(base.getFullYear(), base.getMonth(), base.getDate() + 7);
+    inp.value = _fechaISO(_calcSabado(next));
+}
+
+// ── Fin: Fecha del evento ────────────────────────────────────────────────────
+
 // Devuelve la fecha elegida formateada en español, ej: "Sábado 13 de junio".
 // Si no se eligió fecha, devuelve cadena vacía.
 function repFechaTexto() {
@@ -351,6 +391,7 @@ function repWhatsApp() {
 function repAbrir() {
     const p = document.getElementById("rep-panel");
     if (p) p.classList.add("abierto");
+    repIniciarFecha();   // pone el próximo sábado si el campo está vacío
 }
 
 function repToggle() {
@@ -367,4 +408,7 @@ document.addEventListener("click", function (e) {
     }
 });
 
-document.addEventListener("DOMContentLoaded", repRender);
+document.addEventListener("DOMContentLoaded", function () {
+    repRender();
+    repIniciarFecha();
+});
