@@ -64,6 +64,11 @@
             {% endif %}
         {% endwith %}
 
+        {# Botón "← Menú principal" en todas las páginas excepto la home #}
+        {% if request.endpoint and request.endpoint not in ('inicio', 'imprimir_cancion', 'presentar', 'proyectar', 'repertorio_movil') %}
+        <a href="{{ url_for('inicio') }}" class="btn-volver-inicio">← Menú principal</a>
+        {% endif %}
+
         {% block contenido %}{% endblock %}
     </main>
 
@@ -108,9 +113,11 @@
         </div>
 
         <div class="rep-envio">
-            <label>📅 Fecha del evento
+            <label>📅 Fecha del evento</label>
+            <div class="rep-fecha-fila">
                 <input type="date" id="rep-fecha">
-            </label>
+                <button type="button" class="btn btn-chico" onclick="repAvanzarSabado()" title="Ir al sábado siguiente">→ sáb.</button>
+            </div>
             <label>📱 WhatsApp (uno o varios, separados por coma)
                 <input type="text" id="rep-telefonos" placeholder="Ej: 5493512345678, 5492611234567">
             </label>

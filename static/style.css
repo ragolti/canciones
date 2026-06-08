@@ -156,6 +156,38 @@ footer {
 
 .btn-gris { color: var(--texto-suave); }
 
+/* Botón "← Menú principal" (aparece en páginas secundarias) */
+.btn-volver-inicio {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.82rem;
+    color: var(--texto-suave);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--gris-borde);
+    margin-bottom: 12px;
+    transition: color .15s, border-color .15s, background .15s;
+}
+.btn-volver-inicio:hover {
+    color: var(--color-principal);
+    border-color: var(--color-principal);
+    background: rgba(157,123,255,.07);
+}
+
+/* Fila de fecha + botón sábado siguiente */
+.rep-fecha-fila {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.rep-fecha-fila input[type="date"] {
+    flex: 1;
+    min-width: 0;
+}
+
 /* Avisos (mensajes flash) */
 .aviso {
     background: #eafbe7;
