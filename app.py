@@ -126,6 +126,7 @@ def inyectar_usuario():
         "pendientes": pendientes,
         "propuestas_pdf": propuestas_pdf,
         "es_admin_general": es_admin_general(),
+        "es_admin": es_admin(),
     }
 
 
@@ -1248,6 +1249,16 @@ def borrar(cancion_id):
     database.borrar_cancion(cancion_id)
     flash("Canción eliminada.")
     return redirect(url_for("inicio"))
+
+
+@app.route("/api/borrar/<int:cancion_id>", methods=["POST"])
+def api_borrar_cancion(cancion_id):
+    """Elimina una canción vía AJAX y devuelve JSON (solo admin).
+    Permite borrar desde la lista sin recargar la página."""
+    if not es_admin():
+        return {"ok": False, "error": "Solo el administrador puede borrar canciones."}, 403
+    database.borrar_cancion(cancion_id)
+    return {"ok": True}
 
 
 if __name__ == "__main__":

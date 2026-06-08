@@ -491,6 +491,9 @@ footer {
 .clasif-btn.yt-add:hover { background: #cc0000; color: #fff; }
 .yt-count { font-size: 0.78rem; color: #ff5252; font-weight: 600; }
 
+/* Grupo borrar: separado con un borde arriba y margen extra */
+.clasif-grupo-borrar { margin-top: 6px; padding-top: 8px; border-top: 1px solid #fca5a5; width: 100%; }
+
 .etiquetas { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
 .etiqueta {
     background: var(--gris-fondo);

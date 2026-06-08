@@ -138,7 +138,7 @@
                         {% endif %}
 
                         {% if usuario_actual %}
-                        <div class="clasif cmds-area" data-id="{{ cancion['id'] }}">
+                        <div class="clasif cmds-area" data-id="{{ cancion['id'] }}" data-titulo="{{ cancion['titulo'] }}">
                             <div class="clasif-grupo">
                                 <span class="clasif-label">Función</span>
                                 {% for f in funciones %}
@@ -163,6 +163,16 @@
                                 <button type="button" class="clasif-btn yt-add" data-id="{{ cancion['id'] }}">🎬 + Link</button>
                                 <span class="yt-count" id="ytc-{{ cancion['id'] }}">{% if yt %}▶ {{ yt|length }}{% endif %}</span>
                             </div>
+                            {% if es_admin %}
+                            <div class="clasif-grupo clasif-grupo-borrar">
+                                <button type="button" class="btn btn-rojo btn-borrar-cancion"
+                                        data-id="{{ cancion['id'] }}"
+                                        data-titulo="{{ cancion['titulo'] }}"
+                                        title="Eliminar esta canción definitivamente">
+                                    🗑️ Eliminar canción
+                                </button>
+                            </div>
+                            {% endif %}
                         </div>
                         {% endif %}
                     </li>
@@ -285,6 +295,40 @@
                 if (!yaActivo) b.classList.add("activo");
             }
         });
+    });
+
+    // Botón "🗑️ Eliminar canción" (solo admin, aparece en modo comandos).
+    document.addEventListener("click", function (e) {
+        const b = e.target.closest(".btn-borrar-cancion");
+        if (!b) return;
+        const id = b.dataset.id;
+        const titulo = b.dataset.titulo;
+        // Pide confirmación antes de borrar
+        if (!confirm('¿Eliminar "' + titulo + '" definitivamente?\nEsta acción no se puede deshacer.')) return;
+        b.disabled = true;
+        b.textContent = "⏳ Eliminando…";
+        fetch("/api/borrar/" + id, { method: "POST" })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (d.ok) {
+                    // Eliminar el <li> del DOM sin recargar la página
+                    var li = b.closest("li");
+                    if (li) {
+                        li.style.transition = "opacity 0.3s";
+                        li.style.opacity = "0";
+                        setTimeout(function () { li.remove(); }, 300);
+                    }
+                } else {
+                    alert(d.error || "No se pudo eliminar la canción.");
+                    b.disabled = false;
+                    b.textContent = "🗑️ Eliminar canción";
+                }
+            })
+            .catch(function () {
+                alert("Error de red. Intentalo de nuevo.");
+                b.disabled = false;
+                b.textContent = "🗑️ Eliminar canción";
+            });
     });
 </script>
 {% endblock %}
