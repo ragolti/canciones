@@ -812,9 +812,12 @@ def guardar_lista():
     if not canciones:
         return {"ok": False, "error": "La lista está vacía."}, 400
 
+    # Fecha ISO del evento (YYYY-MM-DD), enviada por el campo #rep-fecha del panel.
+    fecha_evento = (datos.get("fecha_evento") or "").strip() or None
+
     u = usuario_actual()
     nuevo_id = database.crear_lista(
-        nombre, u["usuario"], u["id"], json.dumps(canciones, ensure_ascii=False), tipo
+        nombre, u["usuario"], u["id"], json.dumps(canciones, ensure_ascii=False), tipo, fecha_evento
     )
     return {"ok": True, "id": nuevo_id, "tipo": tipo}
 
@@ -885,12 +888,28 @@ def historial():
 @app.route("/listas/<int:lista_id>/tipo", methods=["POST"])
 @login_required
 def cambiar_tipo_lista(lista_id):
-    """Cambia el tipo de la lista entre 'futura' e 'historica'."""
+    """Cambia el tipo de la lista entre 'futura' e 'historica'.
+    Regla: solo se puede mover a 'historica' si la fecha del evento ya pasó.
+    """
+    from datetime import date as _date
     lista = database.obtener_lista(lista_id)
     nuevo_tipo = request.form.get("tipo", "historica")
     if nuevo_tipo not in ("historica", "futura"):
         nuevo_tipo = "historica"
     if lista:
+        # Bloquear si se intenta marcar como histórica y el evento aún no ocurrió.
+        if nuevo_tipo == "historica":
+            fecha_str = (lista["fecha_evento"] or "").strip()
+            if fecha_str:
+                try:
+                    if _date.fromisoformat(fecha_str) > _date.today():
+                        flash(
+                            f"⚠️ El evento todavía no ocurrió ({fecha_str}). "
+                            "Solo podés moverlo a Históricas después de esa fecha."
+                        )
+                        return redirect(url_for("historial", tipo="futura"))
+                except ValueError:
+                    pass  # fecha inválida → permitir igual
         database.cambiar_tipo_lista(lista_id, nuevo_tipo)
     return redirect(url_for("historial", tipo=nuevo_tipo))
 

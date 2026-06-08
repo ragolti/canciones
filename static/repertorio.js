@@ -303,10 +303,18 @@ function repGuardarHistorial() {
             nombre = prompt("Nombre o fecha de la lista (ej: Sábado 13 de junio):", "");
             if (nombre === null) return;
         }
+        // Incluir la fecha ISO del evento para que el servidor pueda verificar
+        // si el evento ya pasó antes de permitir moverla a Históricas.
+        var fechaEvento = (document.getElementById("rep-fecha") || {}).value || "";
         fetch("/listas/guardar", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nombre: nombre || "Lista sin fecha", canciones: lista, tipo: tipo }),
+            body: JSON.stringify({
+                nombre: nombre || "Lista sin fecha",
+                canciones: lista,
+                tipo: tipo,
+                fecha_evento: fechaEvento,
+            }),
         })
         .then(function (r) { return r.json(); })
         .then(function (d) {

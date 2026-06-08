@@ -133,11 +133,29 @@ function verLista(id) {
     html += '<button class="btn btn-nueva" onclick=\'usarLista(' + id + ')\'>📋 Usar esta lista</button>';
 
     // Cambiar tipo (futura ↔ histórica)
-    var otroTipo = (l.tipo === 'futura') ? 'historica' : 'futura';
-    var otroLabel = (l.tipo === 'futura') ? '📅 Mover a Históricas' : '🗓️ Mover a Futuras';
-    html += '<form method="post" action="/listas/' + id + '/tipo" style="display:inline;">' +
-            '<input type="hidden" name="tipo" value="' + otroTipo + '">' +
-            '<button class="btn">' + otroLabel + '</button></form>';
+    if (l.tipo === 'futura') {
+        // Solo se puede mover a histórica si la fecha del evento ya pasó.
+        var puedeHistorica = true;
+        var fechaEv = l.fecha_evento ? l.fecha_evento.slice(0, 10) : '';
+        if (fechaEv) {
+            var hoy = new Date(); hoy.setHours(0,0,0,0);
+            puedeHistorica = new Date(fechaEv + 'T00:00:00') <= hoy;
+        }
+        if (puedeHistorica) {
+            html += '<form method="post" action="/listas/' + id + '/tipo" style="display:inline;">' +
+                    '<input type="hidden" name="tipo" value="historica">' +
+                    '<button class="btn">📅 Mover a Históricas</button></form>';
+        } else {
+            html += '<button class="btn btn-gris" disabled ' +
+                    'title="El evento aún no ocurrió (' + escaparH(fechaEv) + '). ' +
+                    'Podrás moverla a Históricas recién después de esa fecha.">' +
+                    '🔒 Mover a Históricas</button>';
+        }
+    } else {
+        html += '<form method="post" action="/listas/' + id + '/tipo" style="display:inline;">' +
+                '<input type="hidden" name="tipo" value="futura">' +
+                '<button class="btn">🗓️ Mover a Futuras</button></form>';
+    }
 
     if (USUARIO_ACTUAL) {
         var fav = l.favorita ? "Quitar favorita" : "⭐ Favorita";

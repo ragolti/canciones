@@ -281,6 +281,16 @@ def inicializar():
     except Exception:
         pass  # Ya existe la columna
 
+    # Agregar columna 'fecha_evento' si no existe.
+    # Guarda la fecha real del evento (YYYY-MM-DD) para poder comparar con hoy.
+    try:
+        if USAR_POSTGRES:
+            _ejecutar("ALTER TABLE listas ADD COLUMN IF NOT EXISTS fecha_evento TEXT DEFAULT NULL")
+        else:
+            _ejecutar("ALTER TABLE listas ADD COLUMN fecha_evento TEXT DEFAULT NULL")
+    except Exception:
+        pass  # Ya existe la columna
+
     # Tabla de "canciones conocidas" por usuario.
     # Cada fila significa: "el usuario X ya tocó / conoce la canción Y".
     # Así cada usuario puede filtrar y ver solo las que conoce, aunque la base
@@ -614,17 +624,18 @@ def quitar_todas_conocidas(usuario_id):
 
 # ---------- Listas guardadas (historial de eventos) ----------
 
-def crear_lista(nombre, usuario, usuario_id, canciones_json, tipo="historica"):
+def crear_lista(nombre, usuario, usuario_id, canciones_json, tipo="historica", fecha_evento=None):
     """Guarda una lista de evento y devuelve su id.
     tipo: 'historica' (evento ya realizado) o 'futura' (evento próximo/planeado).
+    fecha_evento: fecha ISO 'YYYY-MM-DD' del evento (opcional).
     """
     sql = """
-        INSERT INTO listas (nombre, usuario, usuario_id, canciones_json, tipo)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO listas (nombre, usuario, usuario_id, canciones_json, tipo, fecha_evento)
+        VALUES (?, ?, ?, ?, ?, ?)
     """
     if USAR_POSTGRES:
         sql += " RETURNING id"
-    return _ejecutar(sql, (nombre, usuario, usuario_id, canciones_json, tipo), fetch="id")
+    return _ejecutar(sql, (nombre, usuario, usuario_id, canciones_json, tipo, fecha_evento), fetch="id")
 
 
 def listar_listas(usuario=None, solo_favoritas=False, tipo=None):
