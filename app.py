@@ -19,7 +19,7 @@ from functools import wraps
 from datetime import timedelta
 
 from flask import (
-    Flask, render_template, request, redirect, url_for, flash, session, abort
+    Flask, render_template, request, redirect, url_for, flash, session, abort, jsonify
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -882,37 +882,32 @@ def api_listas_futuras():
 def api_proxima_lista():
     """API JSON: devuelve la lista futura con la fecha de evento más próxima (>=hoy).
     Usada por el panel deslizable a la derecha en móvil."""
-    import traceback as _tb
+    u = usuario_actual()
+    if not u:
+        return jsonify(None)
+    from datetime import date as _date
+    hoy = str(_date.today())
+    # Convertir a dict plano para evitar problemas con sqlite3.Row / RealDictRow
+    filas = database.listar_listas(usuario=u["usuario"], tipo="futura") or []
+    listas = [dict(f) for f in filas]
+    # Preferir las que tienen fecha >= hoy; si no hay, tomar cualquier futura
+    futuras = [l for l in listas if (l.get("fecha_evento") or "") >= hoy]
+    if not futuras:
+        futuras = listas
+    if not futuras:
+        return jsonify(None)
+    futuras.sort(key=lambda l: l.get("fecha_evento") or "9999")
+    l = futuras[0]
     try:
-        u = usuario_actual()
-        if not u:
-            return jsonify(None)
-        from datetime import date as _date
-        hoy = str(_date.today())
-        # Convertir a dict plano para evitar problemas con sqlite3.Row / RealDictRow
-        filas = database.listar_listas(usuario=u["usuario"], tipo="futura") or []
-        listas = [dict(f) for f in filas]
-        # Preferir las que tienen fecha >= hoy; si no hay, tomar cualquier futura
-        futuras = [l for l in listas if (l.get("fecha_evento") or "") >= hoy]
-        if not futuras:
-            futuras = listas
-        if not futuras:
-            return jsonify(None)
-        futuras.sort(key=lambda l: l.get("fecha_evento") or "9999")
-        l = futuras[0]
-        try:
-            canciones = json.loads(l.get("canciones_json") or "[]")
-        except Exception:
-            canciones = []
-        return jsonify({
-            "id":           l["id"],
-            "nombre":       l.get("nombre") or "",
-            "fecha_evento": (l.get("fecha_evento") or "")[:10],
-            "canciones":    canciones,
-        })
-    except Exception as _e:
-        # Devolver tipo + mensaje de excepción para poder depurar
-        return jsonify({"_error": type(_e).__name__ + ": " + str(_e)}), 500
+        canciones = json.loads(l.get("canciones_json") or "[]")
+    except Exception:
+        canciones = []
+    return jsonify({
+        "id":           l["id"],
+        "nombre":       l.get("nombre") or "",
+        "fecha_evento": (l.get("fecha_evento") or "")[:10],
+        "canciones":    canciones,
+    })
 
 
 @app.route("/api/listas/<int:lista_id>/agregar-cancion", methods=["POST"])
