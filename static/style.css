@@ -1022,6 +1022,67 @@ footer {
     align-items: center;
 }
 
+/* ── Modal picker "A qué lista" ─────────────────────────────────── */
+.sug-modal-fondo {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9000;
+    padding: 16px;
+}
+.sug-modal {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 22px 20px 18px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,.28);
+}
+.sug-modal h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.sug-modal-sub {
+    font-size: 0.88rem;
+    color: var(--texto-suave);
+    margin: 0 0 14px;
+    font-style: italic;
+}
+.sug-modal-opciones {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 55vh;
+    overflow-y: auto;
+}
+.sug-modal-opc {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 2px solid var(--gris-borde);
+    background: var(--card);
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.92rem;
+    transition: border-color .15s, background .15s;
+}
+.sug-modal-opc:hover:not(:disabled) {
+    border-color: var(--color-principal);
+    background: rgba(157,123,255,.07);
+}
+.sug-modal-opc:disabled { opacity: .6; cursor: default; }
+.sug-modal-fecha { font-size: 0.8rem; color: var(--texto-suave); }
+.sug-modal-cant  { font-size: 0.78rem; color: var(--texto-suave); }
+.sug-modal-opc-panel {
+    border-style: dashed;
+    color: var(--texto-suave);
+    font-size: 0.88rem;
+}
+.sug-modal hr { border: none; border-top: 1px solid var(--gris-borde); margin: 8px 0; }
+.sug-modal-cargando, .sug-modal-vacio {
+    font-size: 0.9rem; color: var(--texto-suave); padding: 8px 0;
+}
+
 @media (max-width: 800px) {
     .hist-grid { grid-template-columns: 1fr; }
 }

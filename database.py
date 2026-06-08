@@ -671,6 +671,34 @@ def cambiar_tipo_lista(lista_id, tipo):
     _ejecutar("UPDATE listas SET tipo = ? WHERE id = ?", (tipo, lista_id))
 
 
+def agregar_cancion_a_lista(lista_id, cancion):
+    """Agrega una canción a una lista existente si todavía no está.
+    cancion: dict con al menos {id, titulo, tono}.
+    Devuelve (ok: bool, total: int).
+    """
+    lista = obtener_lista(lista_id)
+    if not lista:
+        return False, 0
+    try:
+        canciones = json.loads(lista["canciones_json"] or "[]")
+    except Exception:
+        canciones = []
+    # No duplicar por id
+    ids_actuales = {c.get("id") for c in canciones}
+    if cancion.get("id") in ids_actuales:
+        return False, len(canciones)   # ya estaba
+    canciones.append({
+        "id":     cancion.get("id"),
+        "titulo": cancion.get("titulo", ""),
+        "tono":   cancion.get("tono", ""),
+    })
+    _ejecutar(
+        "UPDATE listas SET canciones_json = ?, modificada_en = CURRENT_TIMESTAMP WHERE id = ?",
+        (json.dumps(canciones, ensure_ascii=False), lista_id),
+    )
+    return True, len(canciones)
+
+
 def borrar_lista(lista_id):
     _ejecutar("DELETE FROM listas WHERE id = ?", (lista_id,))
 

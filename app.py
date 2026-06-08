@@ -839,17 +839,63 @@ def sugerencias():
 
 
 @app.route("/api/sugerencias-mas")
-@login_required
 def api_sugerencias_mas():
     """API JSON: devuelve el siguiente bloque de 10 sugerencias (paginadas)."""
     u = usuario_actual()
+    if not u:
+        return jsonify({"error": "sesión expirada"}), 401
     estilo = request.args.get("estilo", "").strip()
     try:
         offset = max(0, int(request.args.get("offset", 0)))
     except ValueError:
         offset = 0
-    resultado = database.sugerencias(u["usuario"], estilo or None, 10, offset)
-    return jsonify([dict(c) for c in resultado])
+    try:
+        resultado = database.sugerencias(u["usuario"], estilo or None, 10, offset)
+        return jsonify([dict(c) for c in resultado])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/listas-futuras")
+def api_listas_futuras():
+    """API JSON: devuelve las listas futuras del usuario actual (para el picker de sugerencias)."""
+    u = usuario_actual()
+    if not u:
+        return jsonify([])
+    listas = database.listar_listas(usuario=u["usuario"], tipo="futura")
+    resultado = []
+    for l in listas:
+        try:
+            cant = len(json.loads(l["canciones_json"] or "[]"))
+        except Exception:
+            cant = 0
+        resultado.append({
+            "id":           l["id"],
+            "nombre":       l["nombre"] or "",
+            "fecha_evento": (l["fecha_evento"] or "")[:10],
+            "canciones":    cant,
+        })
+    return jsonify(resultado)
+
+
+@app.route("/api/listas/<int:lista_id>/agregar-cancion", methods=["POST"])
+def api_agregar_cancion_lista(lista_id):
+    """API JSON: agrega una canción a una lista futura existente."""
+    u = usuario_actual()
+    if not u:
+        return jsonify({"ok": False, "error": "Sesión expirada."}), 401
+    datos = request.get_json(silent=True) or {}
+    cancion = {
+        "id":     datos.get("id"),
+        "titulo": datos.get("titulo", ""),
+        "tono":   datos.get("tono", ""),
+    }
+    if not cancion["id"]:
+        return jsonify({"ok": False, "error": "Falta el id de la canción."}), 400
+    ok, total = database.agregar_cancion_a_lista(lista_id, cancion)
+    if ok:
+        return jsonify({"ok": True, "total": total})
+    return jsonify({"ok": False, "ya_estaba": True, "total": total})
 
 
 @app.route("/historial")
