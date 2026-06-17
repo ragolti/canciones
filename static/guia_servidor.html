@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Guía: Servidor Linux Propio para tu App</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f4f6f9;
+    color: #2c3e50;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* PORTADA */
+  .portada {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 40px;
+    page-break-after: always;
+  }
+
+  .portada .icono-grande {
+    font-size: 80px;
+    margin-bottom: 30px;
+    filter: drop-shadow(0 0 20px rgba(100,200,255,0.4));
+  }
+
+  .portada h1 {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 16px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+
+  .portada .subtitulo {
+    font-size: 17px;
+    opacity: 0.8;
+    max-width: 500px;
+    margin-bottom: 50px;
+    line-height: 1.7;
+  }
+
+  .portada .badges {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .badge {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-size: 13px;
+    backdrop-filter: blur(4px);
+  }
+
+  .portada .autor {
+    margin-top: 60px;
+    opacity: 0.5;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* PAGINAS */
+  .pagina {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 50px 40px;
+    page-break-after: always;
+  }
+
+  /* RESUMEN VISUAL */
+  .flujo {
+    background: white;
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    margin-bottom: 30px;
+  }
+
+  .flujo h2 {
+    font-size: 22px;
+    margin-bottom: 30px;
+    color: #1a1a2e;
+    text-align: center;
+  }
+
+  .flujo-pasos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .flujo-nodo {
+    background: #f0f4ff;
+    border: 2px solid #4a90e2;
+    border-radius: 12px;
+    padding: 14px 18px;
+    text-align: center;
+    min-width: 110px;
+  }
+
+  .flujo-nodo .fn-ico { font-size: 24px; }
+  .flujo-nodo .fn-txt { font-size: 11px; font-weight: 600; color: #2c3e50; margin-top: 4px; }
+
+  .flujo-flecha {
+    font-size: 20px;
+    color: #4a90e2;
+    font-weight: bold;
+  }
+
+  /* FASES */
+  .fase-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 3px solid;
+  }
+
+  .fase-1 .fase-header { border-color: #e74c3c; }
+  .fase-2 .fase-header { border-color: #f39c12; }
+  .fase-3 .fase-header { border-color: #27ae60; }
+
+  .fase-num {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .fase-1 .fase-num { background: #e74c3c; }
+  .fase-2 .fase-num { background: #f39c12; }
+  .fase-3 .fase-num { background: #27ae60; }
+
+  .fase-titulo h2 { font-size: 24px; color: #1a1a2e; }
+  .fase-titulo p  { font-size: 13px; color: #666; margin-top: 2px; }
+
+  /* PASOS */
+  .paso {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 20px;
+    background: white;
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    border-left: 4px solid;
+    align-items: flex-start;
+  }
+
+  .fase-1 .paso { border-color: #e74c3c; }
+  .fase-2 .paso { border-color: #f39c12; }
+  .fase-3 .paso { border-color: #27ae60; }
+
+  .paso-num {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+    color: white;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .fase-1 .paso-num { background: #e74c3c; }
+  .fase-2 .paso-num { background: #f39c12; }
+  .fase-3 .paso-num { background: #27ae60; }
+
+  .paso-contenido h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 5px;
+  }
+
+  .paso-contenido p {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.6;
+  }
+
+  .paso-contenido .url {
+    display: inline-block;
+    background: #f0f4ff;
+    border: 1px solid #c5d5f5;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #2471a3;
+    margin-top: 6px;
+    word-break: break-all;
+  }
+
+  .paso-contenido .cmd {
+    display: block;
+    background: #1e1e1e;
+    color: #a8ff78;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+
+  .paso-contenido .tip {
+    background: #fff8e1;
+    border-left: 3px solid #f39c12;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #7d6608;
+    margin-top: 8px;
+  }
+
+  /* CHECKLIST FINAL */
+  .checklist {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  .checklist h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: #1a1a2e;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+  }
+
+  .check-item:last-child { border-bottom: none; }
+
+  .check-box {
+    width: 22px;
+    height: 22px;
+    border: 2px solid #4a90e2;
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4a90e2;
+    font-size: 14px;
+  }
+
+  /* CABECERA DE PAGINA */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #eee;
+  }
+
+  .page-header .breadcrumb {
+    font-size: 12px;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .page-header .logo-mini {
+    font-size: 18px;
+  }
+
+  /* TIEMPO ESTIMADO */
+  .tiempo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    color: #2e7d32;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+
+  /* IMPORTANTE */
+  .importante {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: #7d5a00;
+    margin: 20px 0;
+  }
+
+  .importante strong { color: #5a4000; }
+
+  /* PRINT */
+  @media print {
+    body { background: white; }
+    .portada { min-height: 100vh; }
+    .pagina { box-shadow: none; }
+    .paso { box-shadow: none; border-left-width: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ PORTADA -->
+<div class="portada">
+  <div class="icono-grande">🖥️</div>
+  <h1>Tu Propio Servidor Linux</h1>
+  <p class="subtitulo">
+    Guía paso a paso para instalar Ubuntu Server,
+    configurar tu app Flask y publicarla en internet
+    desde tu propia PC — gratis y para siempre.
+  </p>
+  <div class="badges">
+    <span class="badge">🐧 Ubuntu Server 24.04</span>
+    <span class="badge">🐍 Flask + Gunicorn</span>
+    <span class="badge">🔒 Nginx + HTTPS</span>
+    <span class="badge">📡 MikroTik CCR2116</span>
+  </div>
+  <div class="autor">adoremos.com.ar &nbsp;·&nbsp; Junio 2026</div>
+</div>
+
+<!-- ============================================================ RESUMEN VISUAL -->
+<div class="pagina">
+  <div class="page-header">
+    <span class="breadcrumb">Resumen general</span>
+    <span class="logo-mini">🖥️</span>
+  </div>
+
+  <div class="flujo">
+    <h2>¿Cómo queda el sistema cuando todo esté listo?</h2>
+    <div class="flujo-pasos">
+      <div class="flujo-nodo">
+        <div class="fn-ico">🌐</div>
+        <div class="fn-txt">Internet</div>
+      </div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-nodo">
+        <div class="fn-ico">📡</div>
+        <div class="fn-txt">MikroTik<br>CCR2116</div>
+      </div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-nodo">
+        <div class="fn-ico">🐧</div>
+        <div class="fn-txt">Ubuntu<br>Server</div>
+      </div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-nodo">
+        <div class="fn-ico">⚙️</div>
+        <div class="fn-txt">Nginx<br>HTTPS</div>
+      </div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-nodo">
+        <div class="fn-ico">🐍</div>
+        <div class="fn-txt">Gunicorn<br>Flask</div>
+      </div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-nodo">
+        <div class="fn-ico">🗄️</div>
+        <div class="fn-txt">SQLite /<br>Postgres</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="importante">
+    <strong>⏱ Tiempo total estimado:</strong> 3 a 4 horas la primera vez (con calma).
+    No hace falta saber Linux de antemano — esta guía cubre cada paso con los comandos exactos.
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:24px;">
+    <div style="background:white; border-radius:12px; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.07); text-align:center;">
+      <div style="font-size:36px; margin-bottom:10px;">💿</div>
+      <div style="font-weight:700; color:#e74c3c; font-size:15px;">Fase 1</div>
+      <div style="font-size:13px; color:#555; margin-top:4px;">Instalar Ubuntu<br>Server en la PC</div>
+      <div style="font-size:11px; color:#999; margin-top:8px;">~2 horas</div>
+    </div>
+    <div style="background:white; border-radius:12px; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.07); text-align:center;">
+      <div style="font-size:36px; margin-bottom:10px;">🐍</div>
+      <div style="font-weight:700; color:#f39c12; font-size:15px;">Fase 2</div>
+      <div style="font-size:13px; color:#555; margin-top:4px;">Configurar la app<br>Flask en el servidor</div>
+      <div style="font-size:11px; color:#999; margin-top:8px;">~1 hora</div>
+    </div>
+    <div style="background:white; border-radius:12px; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.07); text-align:center;">
+      <div style="font-size:36px; margin-bottom:10px;">🌐</div>
+      <div style="font-weight:700; color:#27ae60; font-size:15px;">Fase 3</div>
+      <div style="font-size:13px; color:#555; margin-top:4px;">Publicar en internet<br>con DDNS y HTTPS</div>
+      <div style="font-size:11px; color:#999; margin-top:8px;">~1 hora</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ FASE 1 -->
+<div class="pagina">
+  <div class="page-header">
+    <span class="breadcrumb">Fase 1 — Ubuntu Server</span>
+    <span class="logo-mini">💿</span>
+  </div>
+
+  <div class="fase-1">
+    <div class="fase-header">
+      <div class="fase-num">1</div>
+      <div class="fase-titulo">
+        <h2>Instalar Ubuntu Server en la PC</h2>
+        <p>Descargar la imagen, crear el USB y arrancar el instalador</p>
+      </div>
+    </div>
+
+    <div class="tiempo">⏱ Tiempo estimado: 1 a 2 horas</div>
+
+    <div class="paso">
+      <div class="paso-num">1</div>
+      <div class="paso-contenido">
+        <h3>Bajar Ubuntu Server 24.04 LTS</h3>
+        <p>Desde tu PC Windows, entrá al sitio oficial de Ubuntu y descargá la imagen ISO (gratis, ~2.5 GB):</p>
+        <span class="url">https://ubuntu.com/download/server</span>
+        <p style="margin-top:8px;">Hacé clic en <strong>"Download Ubuntu Server 24.04 LTS"</strong>. Guardalo en una carpeta fácil de encontrar.</p>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">2</div>
+      <div class="paso-contenido">
+        <h3>Bajar Rufus (crea el USB booteable)</h3>
+        <p>Rufus es un programa gratis y portable para Windows que convierte el archivo ISO en un USB de instalación:</p>
+        <span class="url">https://rufus.ie</span>
+        <p style="margin-top:8px;">No necesita instalarse. Solo abrilo, insertá un USB de 4 GB o más y usalo como se explica en el paso 3.</p>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">3</div>
+      <div class="paso-contenido">
+        <h3>Crear el USB booteable con Rufus</h3>
+        <p>Con el USB insertado, abrí Rufus y seguí estos pasos:</p>
+        <p style="margin-top:8px;">
+          1. <strong>Device</strong>: elegí tu USB<br>
+          2. <strong>Boot selection</strong>: clic en "SELECT" → buscá el archivo .iso descargado<br>
+          3. <strong>Partition scheme</strong>: dejalo en "GPT"<br>
+          4. Clic en <strong>START</strong> → confirmar que se va a borrar el USB
+        </p>
+        <div class="tip">⚠️ El USB se va a formatear. Asegurate de que no tenga archivos importantes.</div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">4</div>
+      <div class="paso-contenido">
+        <h3>Conectar la PC servidor por cable de red</h3>
+        <p>Antes de instalar, conectá la PC del servidor al router <strong>MikroTik por cable ethernet</strong> (no WiFi). Esto es importante para que el instalador configure la red automáticamente y te asigne una IP fija más adelante.</p>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">5</div>
+      <div class="paso-contenido">
+        <h3>Arrancar desde el USB</h3>
+        <p>Con el USB insertado en la PC servidor, encendela y entrá al <strong>menú de arranque</strong> (Boot Menu). Dependiendo de la placa, la tecla puede ser:</p>
+        <p style="margin-top:8px;"><strong>F2, F8, F10, F12 o Del</strong> — probalas ni bien empieza a encender.</p>
+        <p style="margin-top:6px;">Una vez en el menú, elegí el USB como dispositivo de arranque.</p>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">6</div>
+      <div class="paso-contenido">
+        <h3>Seguir el instalador de Ubuntu Server</h3>
+        <p>El instalador es modo texto pero muy sencillo. Lo más importante:</p>
+        <p style="margin-top:8px;">
+          &nbsp;• <strong>Idioma y teclado:</strong> elegí español si querés<br>
+          &nbsp;• <strong>Tipo de instalación:</strong> "Install Ubuntu Server"<br>
+          &nbsp;• <strong>Red:</strong> debería detectar el cable solo (IP por DHCP)<br>
+          &nbsp;• <strong>Disco:</strong> "Use an entire disk" y confirmá<br>
+          &nbsp;• <strong>Nombre del servidor:</strong> ponele algo como <code>adoremos-server</code><br>
+          &nbsp;• <strong>Usuario y contraseña:</strong> anotálos, los vas a necesitar siempre<br>
+          &nbsp;• <strong>OpenSSH:</strong> ✅ <em>marcá la opción "Install OpenSSH server"</em>
+        </p>
+        <div class="tip">📌 El OpenSSH es clave: te permite manejarlo desde tu PC Windows sin necesitar monitor ni teclado en el servidor.</div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">7</div>
+      <div class="paso-contenido">
+        <h3>Reiniciar y sacar el USB</h3>
+        <p>Al terminar, el instalador te pide que saques el USB y presiones Enter. El servidor va a reiniciar y quedar listo con Ubuntu instalado.</p>
+        <p style="margin-top:8px;">Vas a ver una pantalla de login en modo texto. Eso es normal y correcto.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ FASE 2 -->
+<div class="pagina">
+  <div class="page-header">
+    <span class="breadcrumb">Fase 2 — App Flask</span>
+    <span class="logo-mini">🐍</span>
+  </div>
+
+  <div class="fase-2">
+    <div class="fase-header">
+      <div class="fase-num">2</div>
+      <div class="fase-titulo">
+        <h2>Configurar la app en el servidor</h2>
+        <p>Instalar Python, Gunicorn y Nginx, y dejar la app corriendo como servicio</p>
+      </div>
+    </div>
+
+    <div class="tiempo">⏱ Tiempo estimado: 1 hora</div>
+
+    <div class="importante">
+      <strong>Todo lo que sigue se hace por SSH desde tu PC Windows.</strong>
+      Abrí PowerShell o el símbolo del sistema y conectate con:<br>
+      <code style="display:block; background:#222; color:#a8ff78; padding:8px 12px; border-radius:6px; margin-top:8px; font-size:12px;">ssh usuario@IP-LOCAL-DEL-SERVIDOR</code>
+      Para saber la IP local del servidor, mirá el panel del MikroTik o escribí en el servidor: <code>ip a</code>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">1</div>
+      <div class="paso-contenido">
+        <h3>Actualizar el sistema e instalar dependencias</h3>
+        <span class="cmd">sudo apt update && sudo apt upgrade -y<br>sudo apt install -y python3 python3-pip python3-venv nginx git</span>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">2</div>
+      <div class="paso-contenido">
+        <h3>Copiar el código de la app al servidor</h3>
+        <p>La forma más simple es clonar desde GitHub (si el repo es privado, necesitás un token de acceso):</p>
+        <span class="cmd">cd /home/USUARIO<br>git clone https://github.com/TU-USUARIO/canciones.git<br>cd canciones</span>
+        <p style="margin-top:8px;">O podés copiar los archivos con <code>scp</code> desde Windows.</p>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">3</div>
+      <div class="paso-contenido">
+        <h3>Crear entorno virtual e instalar dependencias</h3>
+        <span class="cmd">python3 -m venv .venv<br>source .venv/bin/activate<br>pip install -r requirements.txt gunicorn</span>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">4</div>
+      <div class="paso-contenido">
+        <h3>Crear el servicio con systemd</h3>
+        <p>Esto hace que la app arranque sola cuando el servidor se reinicia:</p>
+        <span class="cmd">sudo nano /etc/systemd/system/canciones.service</span>
+        <p style="margin-top:8px;">Pegá este contenido (reemplazá USUARIO con tu nombre de usuario):</p>
+        <span class="cmd">[Unit]<br>Description=App Canciones Flask<br>After=network.target<br><br>[Service]<br>User=USUARIO<br>WorkingDirectory=/home/USUARIO/canciones<br>ExecStart=/home/USUARIO/canciones/.venv/bin/gunicorn -w 2 -b 127.0.0.1:5000 app:app<br>Restart=always<br><br>[Install]<br>WantedBy=multi-user.target</span>
+        <span class="cmd">sudo systemctl enable canciones<br>sudo systemctl start canciones<br>sudo systemctl status canciones</span>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">5</div>
+      <div class="paso-contenido">
+        <h3>Configurar Nginx como proxy</h3>
+        <p>Nginx recibe las visitas del puerto 80/443 y las pasa a Gunicorn:</p>
+        <span class="cmd">sudo nano /etc/nginx/sites-available/canciones</span>
+        <span class="cmd">server {<br>&nbsp;&nbsp;&nbsp;&nbsp;listen 80;<br>&nbsp;&nbsp;&nbsp;&nbsp;server_name TU-DOMINIO.COM;<br><br>&nbsp;&nbsp;&nbsp;&nbsp;location / {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_pass http://127.0.0.1:5000;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header Host $host;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header X-Real-IP $remote_addr;<br>&nbsp;&nbsp;&nbsp;&nbsp;}<br>}</span>
+        <span class="cmd">sudo ln -s /etc/nginx/sites-available/canciones /etc/nginx/sites-enabled/<br>sudo nginx -t<br>sudo systemctl reload nginx</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ FASE 3 -->
+<div class="pagina">
+  <div class="page-header">
+    <span class="breadcrumb">Fase 3 — Acceso desde internet</span>
+    <span class="logo-mini">🌐</span>
+  </div>
+
+  <div class="fase-3">
+    <div class="fase-header">
+      <div class="fase-num">3</div>
+      <div class="fase-titulo">
+        <h2>Publicar en internet</h2>
+        <p>MikroTik, DDNS gratuito y HTTPS con Let's Encrypt</p>
+      </div>
+    </div>
+
+    <div class="tiempo">⏱ Tiempo estimado: 1 hora</div>
+
+    <div class="paso">
+      <div class="paso-num">1</div>
+      <div class="paso-contenido">
+        <h3>Asignar IP fija al servidor en el MikroTik</h3>
+        <p>En el panel del MikroTik (usualmente en <code>192.168.1.1</code>), buscá la sección <strong>IP &gt; DHCP Server &gt; Leases</strong>. Encontrá la PC servidor y hacé clic en "Make Static". Así siempre va a tener la misma IP local.</p>
+        <div class="tip">💡 Anotá la IP local del servidor (ej: 192.168.1.100). La vas a usar en el siguiente paso.</div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">2</div>
+      <div class="paso-contenido">
+        <h3>Abrir puertos 80 y 443 en el MikroTik</h3>
+        <p>En el MikroTik: <strong>IP &gt; Firewall &gt; NAT &gt; + (Agregar)</strong></p>
+        <p style="margin-top:8px;">
+          <strong>Hacé esto DOS veces</strong> (una para el puerto 80, otra para el 443):<br><br>
+          &nbsp;• Chain: <code>dstnat</code><br>
+          &nbsp;• Protocol: <code>tcp</code><br>
+          &nbsp;• Dst. Port: <code>80</code> (o <code>443</code>)<br>
+          &nbsp;• Action: <code>dst-nat</code><br>
+          &nbsp;• To Addresses: <code>192.168.1.100</code> (IP del servidor)<br>
+          &nbsp;• To Ports: <code>80</code> (o <code>443</code>)
+        </p>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">3</div>
+      <div class="paso-contenido">
+        <h3>Activar DDNS en el MikroTik (dominio gratuito)</h3>
+        <p>El MikroTik tiene DDNS gratis integrado. En el panel: <strong>IP &gt; Cloud</strong></p>
+        <p style="margin-top:8px;">Activá <strong>"DDNS Enabled"</strong> y copiá el dominio que te asigna, algo como:<br>
+        <code style="background:#f0f4ff; padding:2px 6px; border-radius:4px;">xxxxxxxx.sn.mynetname.net</code></p>
+        <p style="margin-top:8px;">Ese dominio va a apuntar siempre a tu IP, aunque cambie.</p>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">4</div>
+      <div class="paso-contenido">
+        <h3>Actualizar el dominio en Nginx</h3>
+        <p>Editá el archivo de Nginx que creaste antes y reemplazá <code>TU-DOMINIO.COM</code> con el dominio DDNS del paso anterior:</p>
+        <span class="cmd">sudo nano /etc/nginx/sites-available/canciones</span>
+        <span class="cmd">sudo systemctl reload nginx</span>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">5</div>
+      <div class="paso-contenido">
+        <h3>Instalar HTTPS gratuito con Let's Encrypt</h3>
+        <p>Certbot configura HTTPS automáticamente y renueva el certificado solo:</p>
+        <span class="cmd">sudo apt install -y certbot python3-certbot-nginx<br>sudo certbot --nginx -d TU-DOMINIO.DDNS.net</span>
+        <p style="margin-top:8px;">Seguí las instrucciones (ponés tu email, aceptás términos). Al terminar, tu app ya tiene el candado 🔒 y funciona con <code>https://</code>.</p>
+        <div class="tip">✅ Certbot renueva el certificado automáticamente. No hay que hacer nada cada 90 días.</div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="paso-num">6</div>
+      <div class="paso-contenido">
+        <h3>Probar que todo funciona</h3>
+        <p>Desde cualquier dispositivo con internet (incluso el celular con datos, no WiFi de tu casa), abrí:</p>
+        <span class="url">https://TU-DOMINIO.DDNS.net</span>
+        <p style="margin-top:8px;">Si ves la app, ¡el servidor propio está funcionando! La respuesta debería ser instantánea comparada con Render.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ CHECKLIST -->
+<div class="pagina">
+  <div class="page-header">
+    <span class="breadcrumb">Checklist final</span>
+    <span class="logo-mini">✅</span>
+  </div>
+
+  <h2 style="font-size:22px; margin-bottom:8px; color:#1a1a2e;">Lista de verificacion completa</h2>
+  <p style="color:#666; font-size:13px; margin-bottom:24px;">Tachá cada punto a medida que lo completés.</p>
+
+  <div class="checklist">
+    <div class="check-item"><div class="check-box"></div>ISO de Ubuntu Server 24.04 descargado</div>
+    <div class="check-item"><div class="check-box"></div>USB booteable creado con Rufus</div>
+    <div class="check-item"><div class="check-box"></div>PC servidor conectada al MikroTik por cable</div>
+    <div class="check-item"><div class="check-box"></div>Ubuntu Server instalado (con OpenSSH habilitado)</div>
+    <div class="check-item"><div class="check-box"></div>Acceso SSH desde Windows funcionando</div>
+    <div class="check-item"><div class="check-box"></div>apt update / upgrade realizado</div>
+    <div class="check-item"><div class="check-box"></div>Python, pip, venv, nginx, git instalados</div>
+    <div class="check-item"><div class="check-box"></div>Código de la app copiado al servidor</div>
+    <div class="check-item"><div class="check-box"></div>Entorno virtual creado e instalado</div>
+    <div class="check-item"><div class="check-box"></div>Servicio systemd creado y activo</div>
+    <div class="check-item"><div class="check-box"></div>Nginx configurado y funcionando</div>
+    <div class="check-item"><div class="check-box"></div>IP fija asignada al servidor en MikroTik</div>
+    <div class="check-item"><div class="check-box"></div>Puertos 80 y 443 abiertos en MikroTik</div>
+    <div class="check-item"><div class="check-box"></div>DDNS activado en MikroTik</div>
+    <div class="check-item"><div class="check-box"></div>Dominio DDNS actualizado en Nginx</div>
+    <div class="check-item"><div class="check-box"></div>Certificado HTTPS instalado con Certbot</div>
+    <div class="check-item"><div class="check-box"></div>App accesible desde internet con https://</div>
+  </div>
+
+  <div style="margin-top:30px; background:linear-gradient(135deg,#1a1a2e,#0f3460); border-radius:16px; padding:28px 32px; color:white; text-align:center;">
+    <div style="font-size:40px; margin-bottom:12px;">🎉</div>
+    <div style="font-size:18px; font-weight:700; margin-bottom:8px;">Cuando llegues aca...</div>
+    <div style="font-size:14px; opacity:0.8; max-width:400px; margin:0 auto;">
+      Tu app va a responder al instante, sin cold starts, sin costos mensuales,
+      con HTTPS y bajo tu control total. ¡Exito!
+    </div>
+  </div>
+
+  <div style="margin-top:40px; border-top:2px solid #eee; padding-top:20px; display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#999;">
+    <span>Guia generada para adoremos.com.ar &nbsp;·&nbsp; Junio 2026</span>
+    <span>Servidor: Ubuntu 24.04 LTS + Flask + Nginx + Certbot</span>
+  </div>
+</div>
+
+</body>
+</html>
