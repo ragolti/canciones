@@ -219,7 +219,7 @@ def canciones():
         total=len(canciones_lista),
         busqueda=busqueda,
         funciones=database.FUNCIONES,
-        estilos=database.CATEGORIAS_SUGERIDAS,
+        estilos=database.FILTROS_SUGERENCIAS,
         tempos=database.TEMPOS,
         f_grupo=f_grupo, f_funcion=f_funcion, f_tempo=f_tempo,
         conocidas=conocidas, f_conocidas=f_conocidas,
@@ -834,7 +834,7 @@ def sugerencias():
         "sugerencias.html",
         sugeridas=sugeridas,
         estilo=estilo,
-        estilos=database.CATEGORIAS_SUGERIDAS,
+        estilos=database.FILTROS_SUGERENCIAS,
     )
 
 
