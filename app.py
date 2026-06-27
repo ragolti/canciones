@@ -1364,6 +1364,15 @@ def api_borrar_cancion(cancion_id):
     return {"ok": True}
 
 
+@app.route("/exportar-db-migracion-2026")
+def exportar_db_migracion():
+    """Ruta temporal para descargar la base de datos completa (migración al servidor propio)."""
+    from flask import send_file
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "canciones.db")
+    return send_file(db_path, as_attachment=True, download_name="canciones_render.db",
+                     mimetype="application/octet-stream")
+
+
 if __name__ == "__main__":
     # En tu PC: arranca en modo desarrollo (se recarga sola al editar el código).
     # En el servidor: Render usa gunicorn (ver Procfile), no esta parte.
