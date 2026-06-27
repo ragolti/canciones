@@ -50,7 +50,7 @@ RUTA_DB = Path(__file__).parent / "canciones.db"
 # ----- Clasificación de canciones (varias dimensiones) -----
 # Estilo / época (es el campo 'categoria', se usa para agrupar en la lista).
 CATEGORIAS_SUGERIDAS = ["Coros", "Clásicas", "Contemporáneas", "Nuevas"]
-FILTROS_SUGERENCIAS  = ["Coros", "Clásicas", "Contemporáneas", "Nuevas", "Rápidas", "Adoración"]
+FILTROS_SUGERENCIAS  = ["Coros", "Clásicas", "Contemporáneas", "Nuevas", "Rápidas", "Lentas", "Adoración"]
 # Función / momento.
 FUNCIONES = ["Alabanza", "Adoración"]
 # Tempo.
@@ -729,9 +729,11 @@ def sugerencias(usuario, estilo=None, limite=10, offset=0):
     # Canciones candidatas (aprobadas, opcionalmente filtradas).
     canciones = listar_canciones(solo_aprobadas=True)
     if estilo == "Rápidas":
-        canciones = [c for c in canciones if (c.get("tempo") or "") == "Rápida"]
+        canciones = [c for c in canciones if (c["tempo"] or "") == "Rápida"]
+    elif estilo == "Lentas":
+        canciones = [c for c in canciones if (c["tempo"] or "") == "Lenta"]
     elif estilo == "Adoración":
-        canciones = [c for c in canciones if (c.get("funcion") or "") == "Adoración"]
+        canciones = [c for c in canciones if (c["funcion"] or "") == "Adoración"]
     elif estilo:
         canciones = [c for c in canciones if (c["categoria"] or "") == estilo]
 
