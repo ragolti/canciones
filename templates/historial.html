@@ -59,32 +59,19 @@
     <button type="submit" class="btn btn-chico">Ir</button>
 </form>
 
-{# ── Lista actual (borrador en localStorage) ── #}
-<div id="hist-borrador" style="display:none" class="hist-borrador-card">
+{% if solo_fav %}
+{# ── Lista actual en edición (solo visible en Mis Listas) ── #}
+<div id="hist-borrador" class="hist-borrador-card" style="display:none">
     <div class="hist-borrador-cab">
-        <span>📝 <strong>Lista actual</strong> <span class="hist-borrador-sub">(sin guardar aún)</span></span>
+        <span>📝 <strong>Lista actual</strong> <span class="hist-borrador-sub">(sin guardar)</span></span>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn btn-nueva btn-chico" onclick="repGuardarHistorial()">💾 Guardar</button>
             <button class="btn btn-rojo btn-chico" onclick="repNuevaLista()">🆕 Nueva lista</button>
         </div>
     </div>
-    <ol id="hist-borrador-items" class="hist-canciones" style="margin:8px 0 0;"></ol>
+    <ol id="hist-borrador-items" class="hist-borrador-items"></ol>
 </div>
-<script>
-(function() {
-    function escH(s) { var d=document.createElement("div"); d.textContent=String(s||""); return d.innerHTML; }
-    var lista = JSON.parse(localStorage.getItem("adoremos_repertorio") || "[]");
-    if (!lista.length) return;
-    var div = document.getElementById("hist-borrador");
-    var ol  = document.getElementById("hist-borrador-items");
-    lista.forEach(function(c) {
-        var li = document.createElement("li");
-        li.innerHTML = (c.tono ? '<span class="rep-tono">'+escH(c.tono)+'</span> ' : '') + escH(c.titulo);
-        ol.appendChild(li);
-    });
-    div.style.display = "";
-})();
-</script>
+{% endif %}
 
 {% if listas %}
 <div class="hist-grid">
@@ -136,9 +123,115 @@ const FILTRO_TIPO = {{ filtro_tipo|tojson }};
 
 function escaparH(s) {
     var d = document.createElement("div");
-    d.textContent = s;
+    d.textContent = String(s || "");
     return d.innerHTML;
 }
+
+// ── Borrador editable ────────────────────────────────────────────────────────
+var BORRADOR_KEY = "adoremos_repertorio";
+
+function borradorCargar() {
+    try { return JSON.parse(localStorage.getItem(BORRADOR_KEY) || "[]"); } catch(e) { return []; }
+}
+function borradorGuardar(lista) { localStorage.setItem(BORRADOR_KEY, JSON.stringify(lista)); }
+
+function borradorRender() {
+    var div = document.getElementById("hist-borrador");
+    var ol  = document.getElementById("hist-borrador-items");
+    if (!div || !ol) return;
+    var lista = borradorCargar();
+    if (!lista.length) { div.style.display = "none"; return; }
+    div.style.display = "";
+    ol.innerHTML = "";
+    lista.forEach(function(c, i) {
+        var li = document.createElement("li");
+        li.className = "hist-borrador-item";
+        li.innerHTML =
+            '<span class="hist-borr-ord">' +
+              '<button class="btn-borr-ord" onclick="borradorMover('+i+',-1)" title="Subir">▲</button>' +
+              '<button class="btn-borr-ord" onclick="borradorMover('+i+',1)"  title="Bajar">▼</button>' +
+            '</span>' +
+            '<span class="hist-borr-tono" id="borr-tono-'+i+'" onclick="borradorEditarTono('+i+')" title="Cambiar tono">' +
+              (c.tono ? escaparH(c.tono) : '<span class="borr-tono-vacio">+tono</span>') +
+            '</span>' +
+            '<a href="/cancion/'+c.id+'" class="hist-borr-titulo">'+escaparH(c.titulo)+'</a>' +
+            '<button class="btn-borr-del" onclick="borradorQuitar('+i+')" title="Quitar">✕</button>';
+        ol.appendChild(li);
+    });
+}
+
+function borradorMover(idx, dir) {
+    var lista = borradorCargar();
+    var j = idx + dir;
+    if (j < 0 || j >= lista.length) return;
+    var tmp = lista[idx]; lista[idx] = lista[j]; lista[j] = tmp;
+    borradorGuardar(lista); borradorRender();
+}
+
+function borradorQuitar(idx) {
+    var lista = borradorCargar();
+    lista.splice(idx, 1);
+    borradorGuardar(lista); borradorRender();
+}
+
+function borradorEditarTono(idx) {
+    var span = document.getElementById("borr-tono-"+idx);
+    if (!span) return;
+    var lista = borradorCargar();
+    var tono = lista[idx] ? (lista[idx].tono || "") : "";
+    span.innerHTML = '<input type="text" id="borr-inp-'+idx+'" value="'+escaparH(tono)+'" '+
+        'style="width:58px;font-size:0.85rem;padding:2px 5px;border-radius:4px;border:1px solid var(--gris-borde);" '+
+        'placeholder="Ej: G" onblur="borradorGuardarTono('+idx+')" '+
+        'onkeydown="if(event.key===\'Enter\')this.blur()">';
+    var inp = document.getElementById("borr-inp-"+idx);
+    if (inp) { inp.focus(); inp.select(); }
+}
+
+function borradorGuardarTono(idx) {
+    var inp = document.getElementById("borr-inp-"+idx);
+    if (!inp) return;
+    var lista = borradorCargar();
+    if (lista[idx] !== undefined) { lista[idx].tono = inp.value.trim(); borradorGuardar(lista); }
+    borradorRender();
+}
+
+// ── Cargar lista histórica/futura en el borrador para editar ─────────────────
+function cargarParaEditar(id) {
+    var l = LISTAS.find(function(x) { return x.id === id; });
+    if (!l) return;
+    var canciones = l.canciones || [];
+
+    function ejecutarCarga() {
+        localStorage.setItem(BORRADOR_KEY, JSON.stringify(canciones));
+        localStorage.setItem("adoremos_lista_activa_id",     String(id));
+        localStorage.setItem("adoremos_lista_activa_nombre", l.nombre || "");
+        window.location = "/historial?tipo=futura&fav=1";
+    }
+
+    var borrador = borradorCargar();
+    if (!borrador.length) { ejecutarCarga(); return; }
+
+    // Auto-guardar borrador como "Lista en construcción N" antes de reemplazarlo
+    fetch("/api/guardar-borrador", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ canciones: borrador }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.ok) {
+            ejecutarCarga();
+        } else if (confirm("No se pudo guardar la lista actual ("+( d.error||"error")+")\n¿Continuar sin guardar?")) {
+            ejecutarCarga();
+        }
+    })
+    .catch(function() {
+        if (confirm("Error de red. ¿Continuar sin guardar el borrador?")) ejecutarCarga();
+    });
+}
+
+// Inicializar borrador editable si estamos en Mis Listas
+borradorRender();
 
 function verLista(id) {
     document.querySelectorAll(".hist-item").forEach(function (el) { el.classList.remove("activa"); });
@@ -175,6 +268,7 @@ function verLista(id) {
     // Acciones
     html += '<div class="acciones" style="margin-top:14px;flex-wrap:wrap;gap:8px;">';
     html += '<button class="btn btn-nueva" onclick=\'usarLista(' + id + ')\'>📋 Usar esta lista</button>';
+    html += '<button class="btn" onclick=\'cargarParaEditar(' + id + ')\'>📝 Editar</button>';
 
     // Cambiar tipo (futura ↔ histórica)
     if (l.tipo === 'futura') {

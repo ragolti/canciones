@@ -1026,9 +1026,21 @@ footer {
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 .hist-borrador-sub { font-size: 0.8rem; color: var(--texto-suave); }
+.hist-borrador-items { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
+.hist-borrador-item { display: flex; align-items: center; gap: 7px; padding: 6px 8px; background: var(--fondo); border-radius: 7px; }
+.hist-borr-ord { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.btn-borr-ord { background: none; border: 1px solid var(--gris-borde); border-radius: 3px; cursor: pointer; font-size: 0.65rem; padding: 1px 5px; color: var(--texto); line-height: 1.2; }
+.btn-borr-ord:active { background: var(--acento); color: #fff; }
+.hist-borr-tono { min-width: 42px; font-size: 0.82rem; font-weight: bold; color: var(--acento); cursor: pointer; border: 1px dashed var(--gris-borde); border-radius: 4px; padding: 2px 6px; text-align: center; flex-shrink: 0; }
+.hist-borr-tono:hover { border-color: var(--acento); }
+.borr-tono-vacio { color: var(--texto-suave); font-weight: normal; font-size: 0.75rem; }
+.hist-borr-titulo { flex: 1; color: var(--texto); text-decoration: none; font-size: 0.95rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-borr-titulo:hover { text-decoration: underline; }
+.btn-borr-del { background: none; border: none; cursor: pointer; color: var(--rojo, #c62828); font-size: 1rem; padding: 2px 5px; flex-shrink: 0; opacity: 0.7; }
+.btn-borr-del:hover { opacity: 1; }
 
 .hist-grid { display: grid; grid-template-columns: 300px 1fr; gap: 14px; }
 .hist-listas { display: flex; flex-direction: column; gap: 8px; }

@@ -910,6 +910,30 @@ def api_proxima_lista():
     })
 
 
+@app.route("/api/guardar-borrador", methods=["POST"])
+@login_required
+def api_guardar_borrador():
+    """Guarda la lista borrador actual como 'Lista en construcción N' (favorita, futura)."""
+    u = usuario_actual()
+    datos = request.get_json(silent=True) or {}
+    canciones = datos.get("canciones", [])
+    if not canciones:
+        return jsonify({"ok": False, "error": "Lista vacía"})
+    todas = database.listar_listas(usuario=u["usuario"])
+    n = sum(1 for l in todas if (l["nombre"] or "").startswith("Lista en construcción")) + 1
+    nombre = f"Lista en construcción {n}"
+    lista_id = database.crear_lista(
+        nombre=nombre,
+        usuario=u["usuario"],
+        usuario_id=u["id"],
+        canciones_json=json.dumps(canciones, ensure_ascii=False),
+        tipo="futura",
+        fecha_evento=None,
+    )
+    database.cambiar_favorita(lista_id, True)
+    return jsonify({"ok": True, "id": lista_id, "nombre": nombre})
+
+
 @app.route("/api/listas/<int:lista_id>/agregar-cancion", methods=["POST"])
 def api_agregar_cancion_lista(lista_id):
     """API JSON: agrega una canción a una lista futura existente."""

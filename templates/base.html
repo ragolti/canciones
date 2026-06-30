@@ -23,7 +23,7 @@
                 <option value="violeta">🎨 Violeta</option>
             </select>
             <a href="{{ url_for('canciones') }}" class="btn" title="Canciones">🎵 Canciones</a>
-        <a href="{{ url_for('historial') }}" class="btn" title="Ver listas guardadas">📅 Listas</a>
+        <a href="{{ url_for('historial', tipo='futura', fav='1') }}" class="btn" title="Ver listas guardadas">📅 Listas</a>
             {% if usuario_actual %}
                 <a href="{{ url_for('sugerencias') }}" class="btn">💡 Sugerencias</a>
                 {% if usuario_actual.rol == 'admin' %}
@@ -176,7 +176,7 @@
             <span class="bnav-icon">🎶</span>
             <span class="bnav-label">Lista <span id="bnav-count" class="bnav-badge" style="display:none">0</span></span>
         </button>
-        <a href="{{ url_for('historial') }}" class="bnav-item {% if request.endpoint == 'historial' %}activo{% endif %}">
+        <a href="{{ url_for('historial', tipo='futura', fav='1') }}" class="bnav-item {% if request.endpoint == 'historial' %}activo{% endif %}">
             <span class="bnav-icon">📅</span>
             <span class="bnav-label">Listas</span>
         </a>
