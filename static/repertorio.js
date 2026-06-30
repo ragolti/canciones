@@ -52,6 +52,14 @@ function repVaciar() {
     }
 }
 
+function repNuevaLista() {
+    var lista = repCargar();
+    if (lista.length > 0 && !confirm("¿Empezar lista nueva? Se borrará la lista actual.")) return;
+    repGuardar([]);
+    localStorage.removeItem('adoremos_lista_activa_id');
+    localStorage.removeItem('adoremos_lista_activa_nombre');
+}
+
 function escapeHtml(s) {
     const d = document.createElement("div");
     d.textContent = s;

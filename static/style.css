@@ -1013,6 +1013,23 @@ footer {
 .hist-filtros select { padding: 6px 10px; border: 1px solid var(--gris-borde); border-radius: 6px; }
 .hist-fav-check { display: flex; align-items: center; gap: 6px; }
 
+.hist-borrador-card {
+    background: var(--card);
+    border: 2px dashed var(--acento);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+}
+.hist-borrador-cab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.hist-borrador-sub { font-size: 0.8rem; color: var(--texto-suave); }
+
 .hist-grid { display: grid; grid-template-columns: 300px 1fr; gap: 14px; }
 .hist-listas { display: flex; flex-direction: column; gap: 8px; }
 .hist-item {

@@ -4,22 +4,29 @@
 
 <div class="hist-header">
     <h1>
-        {% if filtro_tipo == 'futura' %}
+        {% if solo_fav %}
+            ⭐ Mis Listas
+        {% elif filtro_tipo == 'futura' %}
             🗓️ Listas futuras
         {% else %}
             📅 Listas históricas
         {% endif %}
     </h1>
 
-    {# ── Pestañas Futuras / Históricas ── #}
+    {# ── Pestañas Futuras / Mis Listas / Históricas ── #}
     <div class="hist-tabs">
-        <a href="{{ url_for('historial', tipo='futura',   usuario=filtro_usuario, fav='1' if solo_fav else '') }}"
-           class="hist-tab {% if filtro_tipo == 'futura' %}activa{% endif %}">
+        <a href="{{ url_for('historial', tipo='futura', usuario=filtro_usuario) }}"
+           class="hist-tab {% if filtro_tipo == 'futura' and not solo_fav %}activa{% endif %}">
             🗓️ Futuras
             <span class="hist-tab-desc">Próximos eventos</span>
         </a>
-        <a href="{{ url_for('historial', tipo='historica', usuario=filtro_usuario, fav='1' if solo_fav else '') }}"
-           class="hist-tab {% if filtro_tipo == 'historica' %}activa{% endif %}">
+        <a href="{{ url_for('historial', tipo='futura', fav='1') }}"
+           class="hist-tab {% if solo_fav %}activa{% endif %}">
+            ⭐ Mis Listas
+            <span class="hist-tab-desc">Mis favoritas</span>
+        </a>
+        <a href="{{ url_for('historial', tipo='historica', usuario=filtro_usuario) }}"
+           class="hist-tab {% if filtro_tipo == 'historica' and not solo_fav %}activa{% endif %}">
             📅 Históricas
             <span class="hist-tab-desc">Eventos pasados</span>
         </a>
@@ -51,6 +58,33 @@
     </label>
     <button type="submit" class="btn btn-chico">Ir</button>
 </form>
+
+{# ── Lista actual (borrador en localStorage) ── #}
+<div id="hist-borrador" style="display:none" class="hist-borrador-card">
+    <div class="hist-borrador-cab">
+        <span>📝 <strong>Lista actual</strong> <span class="hist-borrador-sub">(sin guardar aún)</span></span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-nueva btn-chico" onclick="repGuardarHistorial()">💾 Guardar</button>
+            <button class="btn btn-rojo btn-chico" onclick="repNuevaLista()">🆕 Nueva lista</button>
+        </div>
+    </div>
+    <ol id="hist-borrador-items" class="hist-canciones" style="margin:8px 0 0;"></ol>
+</div>
+<script>
+(function() {
+    function escH(s) { var d=document.createElement("div"); d.textContent=String(s||""); return d.innerHTML; }
+    var lista = JSON.parse(localStorage.getItem("adoremos_repertorio") || "[]");
+    if (!lista.length) return;
+    var div = document.getElementById("hist-borrador");
+    var ol  = document.getElementById("hist-borrador-items");
+    lista.forEach(function(c) {
+        var li = document.createElement("li");
+        li.innerHTML = (c.tono ? '<span class="rep-tono">'+escH(c.tono)+'</span> ' : '') + escH(c.titulo);
+        ol.appendChild(li);
+    });
+    div.style.display = "";
+})();
+</script>
 
 {% if listas %}
 <div class="hist-grid">
@@ -180,6 +214,8 @@ function verLista(id) {
     html += '</div>';
 
     cont.innerHTML = html;
+    // En móvil el detalle queda debajo de la lista — scroll automático para mostrarlo
+    if (window.innerWidth < 800) cont.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // Muestra un editor inline de fecha del evento para una lista.
